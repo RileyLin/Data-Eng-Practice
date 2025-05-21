@@ -1,0 +1,5 @@
+# Basic dependencies for running the interview questions
+# No external dependencies are strictly required as the code uses standard library
+# But we'll add some common data science packages that might be useful
+numpy>=1.21.0
+pandas>=1.3.0 

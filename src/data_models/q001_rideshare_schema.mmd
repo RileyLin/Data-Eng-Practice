@@ -1,0 +1,109 @@
+erDiagram
+    fact_rides ||--o{ fact_ride_segments : contains
+    fact_rides }o--|| dim_users : has_driver
+    fact_ride_segments }o--|| dim_users : has_rider
+    fact_rides }o--|| dim_ride_type : has_type
+    fact_rides }o--|| dim_location : has_start_location
+    fact_rides }o--|| dim_location : has_end_location
+    fact_ride_segments }o--|| dim_location : has_pickup_location
+    fact_ride_segments }o--|| dim_location : has_dropoff_location
+    fact_rides }o--|| dim_vehicle : has_vehicle
+    fact_rides }o--|| dim_date : has_date
+    fact_rides }o--|| dim_time : has_time
+
+    fact_rides {
+        bigint ride_id PK
+        bigint driver_user_key FK
+        bigint ride_type_key FK
+        bigint vehicle_key FK
+        bigint start_location_key FK
+        bigint end_location_key FK
+        timestamp start_timestamp
+        timestamp end_timestamp
+        decimal total_fare
+        decimal total_distance
+        int total_duration
+        bigint date_key FK
+        bigint time_key FK
+    }
+
+    fact_ride_segments {
+        bigint ride_segment_id PK
+        bigint ride_id FK
+        bigint rider_user_key FK
+        timestamp segment_pickup_timestamp
+        timestamp segment_dropoff_timestamp
+        bigint segment_pickup_location_key FK
+        bigint segment_dropoff_location_key FK
+        decimal segment_fare
+        decimal segment_distance
+        int pickup_sequence_in_ride
+        int dropoff_sequence_in_ride
+    }
+
+    dim_users {
+        bigint user_key PK
+        string user_id
+        string first_name
+        string last_name
+        timestamp created_at
+        string user_type
+        string email
+        string phone
+    }
+
+    dim_ride_type {
+        bigint ride_type_key PK
+        string ride_type_name
+        string description
+        decimal base_fare
+        decimal per_mile_rate
+        decimal per_minute_rate
+    }
+
+    dim_location {
+        bigint location_key PK
+        decimal latitude
+        decimal longitude
+        string address
+        string city
+        string state
+        string postal_code
+        string country
+        bigint geocode_accuracy
+    }
+
+    dim_vehicle {
+        bigint vehicle_key PK
+        string vehicle_id
+        string make
+        string model
+        int year
+        string color
+        string license_plate
+        int max_capacity
+        string vehicle_type
+    }
+
+    dim_date {
+        bigint date_key PK
+        date calendar_date
+        int day_of_week
+        int day_of_month
+        int day_of_year
+        int week_of_year
+        int month
+        int quarter
+        int year
+        boolean is_weekend
+        boolean is_holiday
+    }
+
+    dim_time {
+        bigint time_key PK
+        time time_of_day
+        int hour_of_day
+        int minute_of_hour
+        string time_of_day_name
+        string day_part
+    } 

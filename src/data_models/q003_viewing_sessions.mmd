@@ -1,0 +1,124 @@
+erDiagram
+    fact_viewing_sessions ||--|| dim_users : viewed_by
+    fact_viewing_sessions ||--|| dim_content : contains
+    fact_viewing_sessions ||--|| dim_device : viewed_on
+    fact_viewing_sessions ||--|| dim_date : occurred_on
+    fact_viewing_sessions ||--|| dim_time : started_at
+    dim_content ||--|| dim_content_type : has_type
+    dim_content ||--o{ dim_content_genre : categorized_by
+
+    fact_viewing_sessions {
+        bigint viewing_session_id PK
+        bigint user_key FK
+        bigint content_key FK
+        bigint device_key FK
+        timestamp session_start_timestamp
+        timestamp session_end_timestamp
+        int view_duration_seconds
+        int content_duration_seconds
+        float completion_percentage
+        int pause_count
+        int seek_count
+        timestamp last_pause_timestamp
+        int watch_progress_seconds
+        boolean is_completed
+        bigint date_key FK
+        bigint time_key FK
+        string session_id
+        string client_version
+    }
+
+    dim_users {
+        bigint user_key PK
+        string user_id
+        string email
+        timestamp account_created_at
+        string subscription_tier
+        boolean is_trial
+        date subscription_end_date
+        string preferred_language
+        string country_code
+        boolean is_test_account
+        json user_preferences
+    }
+
+    dim_content {
+        bigint content_key PK
+        string content_id
+        string title
+        bigint content_type_key FK
+        int duration_seconds
+        int release_year
+        string maturity_rating
+        string language
+        boolean has_subtitles
+        boolean has_dubbing
+        int episode_number
+        int season_number
+        string series_id
+        timestamp added_date
+        float avg_rating
+        json content_metadata
+    }
+
+    dim_content_type {
+        bigint content_type_key PK
+        string content_type_name "movie, series, episode, trailer"
+        string description
+        boolean is_premium
+    }
+
+    dim_content_genre {
+        bigint content_genre_id PK
+        bigint content_key FK
+        string genre_name
+        boolean is_primary_genre
+    }
+
+    dim_device {
+        bigint device_key PK
+        string device_id
+        string device_type "tv, mobile, tablet, desktop"
+        string manufacturer
+        string model
+        string os_name
+        string os_version
+        string browser_name
+        string browser_version
+        int screen_resolution_width
+        int screen_resolution_height
+    }
+
+    dim_date {
+        bigint date_key PK
+        date calendar_date
+        int day_of_week
+        int day_of_month
+        int month
+        int quarter
+        int year
+        boolean is_weekend
+        boolean is_holiday
+    }
+
+    dim_time {
+        bigint time_key PK
+        time time_of_day
+        int hour_of_day
+        int minute_of_hour
+        string day_part "morning, afternoon, evening, night"
+    }
+
+    agg_user_daily_viewing {
+        bigint user_key FK
+        bigint date_key FK
+        int total_view_seconds
+        int content_count
+        int unique_content_count
+        float avg_completion_rate
+        int session_count
+        int movies_watched
+        int episodes_watched
+        timestamp first_view_timestamp
+        timestamp last_view_timestamp
+    } 

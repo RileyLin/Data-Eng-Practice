@@ -1,0 +1,100 @@
+erDiagram
+    fact_engagement_events ||--|| dim_users : performed_by
+    fact_engagement_events ||--|| dim_posts : targets
+    fact_engagement_events ||--|| dim_event_type : has_type
+    fact_engagement_events ||--|| dim_date : occurred_on
+    fact_engagement_events ||--|| dim_time : occurred_at
+    dim_posts ||--|| dim_users : created_by
+    dim_posts ||--|{ dim_posts : shared_from
+    dim_posts ||--|| dim_content_type : has_type
+
+    fact_engagement_events {
+        bigint event_id PK
+        bigint user_key FK
+        bigint post_key FK
+        bigint event_type_key FK
+        timestamp event_timestamp
+        json event_metadata
+        bigint date_key FK
+        bigint time_key FK
+        uuid session_id
+        string device_id
+        string client_version
+    }
+
+    dim_posts {
+        bigint post_key PK
+        string post_id
+        bigint creator_user_key FK
+        bigint original_post_key FK "NULL if original post"
+        int share_depth "0 if original"
+        timestamp created_at
+        bigint content_type_key FK
+        boolean is_deleted
+        string content_hash
+        json post_metadata
+        int share_count
+        int like_count
+        int comment_count
+        int view_count
+    }
+
+    dim_users {
+        bigint user_key PK
+        string user_id
+        string username
+        timestamp created_at
+        boolean is_verified
+        boolean is_test_account
+        string country_code
+        string language_code
+        json user_metadata
+    }
+
+    dim_event_type {
+        bigint event_type_key PK
+        string event_type_name "like, comment, share, view"
+        string event_category "engagement, impression, conversion"
+        string description
+        boolean is_active
+    }
+
+    dim_content_type {
+        bigint content_type_key PK
+        string content_type_name "video, image, text, mixed"
+        string description
+        boolean is_active
+    }
+
+    dim_date {
+        bigint date_key PK
+        date calendar_date
+        int day_of_week
+        int day_of_month
+        int month
+        int quarter
+        int year
+        boolean is_weekend
+        boolean is_holiday
+    }
+
+    dim_time {
+        bigint time_key PK
+        time time_of_day
+        int hour_of_day
+        int minute_of_hour
+        string day_part "morning, afternoon, evening, night"
+    }
+
+    agg_post_daily_metrics {
+        bigint post_key FK
+        bigint date_key FK
+        int daily_view_count
+        int daily_like_count
+        int daily_comment_count
+        int daily_share_count
+        decimal engagement_rate
+        int unique_viewer_count
+        float avg_view_duration_seconds
+        float completion_rate
+    } 
