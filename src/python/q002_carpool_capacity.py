@@ -51,7 +51,26 @@ def can_vehicle_complete_rides_with_capacity(ride_segments, max_capacity):
         True if all segments can be completed without exceeding capacity,
         False otherwise.
     """
-    # TODO: Implement your solution here
+    events = []
+
+    for start_time, end_time, num_passengers in ride_segments:
+        events.append((start_time, 'pickup', num_passengers))
+        events.append((end_time, 'dropoff', num_passengers))
+
+    # Sort events by time, with dropoffs happening before pickups at the same time
+    events.sort(key=lambda x: (x[0], 0 if x[1] == 'dropoff' else 1))
+
+    current_occupancy = 0
+
+    for time, event_type, passengers in events:
+        if event_type == 'pickup':
+            current_occupancy += passengers
+        else:
+            current_occupancy -= passengers
+        
+        if current_occupancy > max_capacity:
+            return False
+
     return True
 
 # Test cases

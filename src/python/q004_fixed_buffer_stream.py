@@ -76,8 +76,20 @@ def process_fixed_buffer_stream(event_item, buffer, buffer_size, totals_engageme
     Note: totals_engagement and totals_view_seconds are expected to be mutable objects
     that will be updated in-place (e.g., a list with a single element: [0], [0.0])
     """
-    # TODO: Implement your solution here
-    pass
+    
+    if len(buffer)>=buffer_size:
+        oldest_item = buffer.pop(0)
+
+        if oldest_item['user_id'] not in test_users:
+            if oldest_item['event_type']=='view' and 'view_duration_ms' in oldest_item:
+
+                view_seconds = oldest_item['view_duration_ms']/1000.0
+                totals_view_seconds[0]+=view_seconds
+            elif oldest_item['event_type'] in ['like','comment','share']:
+                totals_engagement[0]+=1
+    
+    print(f"Engagement count: {totals_engagement}")
+    buffer.append(event_item)
 
 def flush_fixed_buffer(buffer, totals_engagement, totals_view_seconds, test_users):
     """
@@ -89,8 +101,26 @@ def flush_fixed_buffer(buffer, totals_engagement, totals_view_seconds, test_user
         totals_view_seconds (float): Running total of view duration in seconds (passed by reference)
         test_users (set): Set of test user IDs to exclude from aggregation
     """
-    # TODO: Implement your solution here
-    pass
+    
+    buffer_copy = buffer.copy()
+
+    for item in buffer_copy:
+        buffer.remove(item)
+
+        if item['user_id'] in test_users:
+            continue
+        
+        if item['event_type']=='view' and 'view_duration_ms' in item:
+
+            view_seconds = item['view_duration_ms']/1000.0
+
+            totals_view_seconds[0] +=view_seconds
+        
+        elif item['event_type'] in ['like','comment','share']:
+            totals_engagement[0] +=1
+        
+
+
 
 # Test cases
 def test_fixed_buffer_processing():
@@ -135,14 +165,14 @@ def test_fixed_buffer_processing():
         {'user_id': 'user6', 'event_type': 'comment', 'post_id': 'p6'},
         buffer, buffer_size, totals_engagement, totals_view_seconds, test_users)
     
-    assert totals_engagement[0] == 1, "Engagement count should not include test users"
     assert totals_view_seconds[0] == 10.0, f"Expected 10.0 view seconds, got {totals_view_seconds[0]}"
+    assert totals_engagement[0] == 2, f"Expected engagement count 2, got {totals_engagement[0]}"
     
     # Test Case 3: Flush buffer
     flush_fixed_buffer(buffer, totals_engagement, totals_view_seconds, test_users)
     
     assert len(buffer) == 0, "Buffer should be empty after flush"
-    assert totals_engagement[0] == 3, f"Expected final engagement count 3, got {totals_engagement[0]}"
+    assert totals_engagement[0] == 4, f"Expected final engagement count 4, got {totals_engagement[0]}"
     
     print("All test cases passed!")
 

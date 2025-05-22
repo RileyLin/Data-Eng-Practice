@@ -51,8 +51,35 @@ def process_event(event, buffer, totals, test_users):
     Returns:
         None (updates buffer and totals in-place)
     """
-    # TODO: Implement your solution here
-    pass
+    
+    session_id = event.get('session_id')
+    user_id = event.get('user_id')
+    event_type = event.get('event_type')
+
+
+    if session_id not in buffer:
+        buffer[session_id]= {'events':[],'users':set()}
+    
+    buffer[session_id]['events'].append(event)
+    buffer[session_id]['users'].add(user_id)
+
+    if event_type == 'session_end':
+        is_test_session = any(user in test_users for user in buffer[session_id]['users'])
+
+        if not is_test_session:
+
+            for e in buffer[session_id]['events']:
+                e_type = e['event_type']
+
+                if e_type =='like':
+                    totals['likes']+=1
+                elif e_type =='view':
+                    totals['views']+=1
+                elif e_type == 'comment':
+                    totals['comments']+=1
+        del buffer[session_id]
+
+
 
 # Test cases
 def test_process_event():

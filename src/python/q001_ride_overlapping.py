@@ -41,10 +41,10 @@ def can_user_complete_rides(requested_rides):
         True if no rides overlap, False otherwise.
     """
     
-    if not requested_ride:
+    if not requested_rides:
         return False 
     
-    sorted_rides = requested_ride
+    sorted_rides = requested_rides
 
     sorted_rides.sort()
 
