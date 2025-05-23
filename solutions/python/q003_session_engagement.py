@@ -63,6 +63,7 @@ def test_process_event():
     process_event({'session_id': 's1', 'user_id': 'user1', 'event_type': 'session_end'}, 
                  buffer, totals, test_users)
     
+    # After processing, we should have 1 like and 1 view
     assert totals['like'] == 1, f"Expected 1 like, but got {totals['like']}"
     assert totals['view'] == 1, f"Expected 1 view, but got {totals['view']}"
     assert totals['comment'] == 0, f"Expected 0 comments, but got {totals['comment']}"
@@ -74,9 +75,11 @@ def test_process_event():
     process_event({'session_id': 's2', 'user_id': 'user_test_A', 'event_type': 'session_end'}, 
                  buffer, totals, test_users)
     
+    # Totals should remain unchanged since it's a test user
     assert totals['like'] == 1, "Test user likes should not affect totals"
     
     # Test case 3: Mixed session (regular user event + test user event = internal session)
+    # This is considered an internal session because it has a test user
     process_event({'session_id': 's3', 'user_id': 'user2', 'event_type': 'comment'}, 
                  buffer, totals, test_users)
     process_event({'session_id': 's3', 'user_id': 'user_test_B', 'event_type': 'like'}, 
@@ -84,6 +87,7 @@ def test_process_event():
     process_event({'session_id': 's3', 'user_id': 'user2', 'event_type': 'session_end'}, 
                  buffer, totals, test_users)
     
+    # Totals should remain unchanged because the session had a test user
     assert totals['comment'] == 0, "Comments from mixed sessions should not be counted"
     
     print("All test cases passed!")
