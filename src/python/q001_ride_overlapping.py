@@ -42,21 +42,29 @@ def can_user_complete_rides(requested_rides):
     """
     
     if not requested_rides:
-        return False 
+        return True 
+    
+    if len(requested_rides)<1:
+        return False
     
     sorted_rides = requested_rides
 
-    sorted_rides.sort()
+    sorted_rides.sort(key = lambda x:x[1])
 
-    end_time = 0
+    previous_end_time = 0
+
     for ride in sorted_rides:
-        if(ride[0]<end_time):
+
+        if ride[0]<previous_end_time:
             return False
         
-        end_time = ride[1]
-
+        previous_end_time = ride[1]
 
     return True
+
+
+
+
 
 # Test cases
 def test_can_user_complete_rides():

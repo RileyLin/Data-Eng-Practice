@@ -73,8 +73,45 @@ def process_newsfeed_log(log, session_buffer):
     Returns:
         None (updates session_buffer in-place)
     """
-    # TODO: Implement your solution here
-    pass
+    
+    event_type = log.get('event_type')
+    session_id = log.get('session_id')
+    post_id = log.get('post_id')
+    time_stamp = log.get('time_stamp')
+    percentage = log.get('percentage')
+
+    if not all([event_type,session_id,post_id,isinstance(time_stamp,(int,float))]):
+        return
+
+    if session_id not in session_buffer:
+        session_buffer[session_id]={}
+    
+    if post_id not in session_buffer[session_id]:
+        session_buffer[session_id][post_id]={
+            'start_time':None,
+            'end_time': None,
+            'max_visibility_perc':0,
+            'has_start':False,
+            'has_end':False
+        }
+
+    post_data = session_buffer[session_id][post_id]
+
+    if event_type =='start':
+        if post_data['start_time'] is not None:
+            post_data['start_time'] = min(post_data['start_time'],time_stamp)
+        else: 
+            post_data['start_time'] = time_stamp
+            post_data['has_start'] = True
+    elif event_type == 'end':
+        if post_data['end_time'] is not None:
+            post_data['end_time'] = max(post_data['end_time'],time_stamp)
+        else:
+            post_data['end_time'] = time_stamp    
+            post_data['has_end']=True
+    
+    if isinstance(percentage,(int,float)):
+        post_data['max_visibility_perc'] = max(post_data['max_visibility_perc'],percentage)
 
 def calculate_session_valid_reads(session_id, session_buffer):
     """
@@ -87,8 +124,38 @@ def calculate_session_valid_reads(session_id, session_buffer):
     Returns:
         int: Count of posts meeting valid read criteria (duration >= 5s OR max_perc >= 80%)
     """
-    # TODO: Implement your solution here
-    return 0
+    
+    if session_id not in session_buffer:
+        return 0 
+    
+    valid_read_counts = 0
+
+    session_posts = session_buffer[session_id]
+    print(f'session_id: {session_id}')
+    for post_id, data in session_posts.items():
+        is_valid_read = False
+
+        has_defined_start = data['has_start'] and data['start_time'] is not None
+        has_defined_end = data['has_end'] and data['end_time'] is not None
+
+        duration = 0
+
+        if has_defined_start and has_defined_end and data['end_time']>=data['start_time']:
+            duration = data['end_time']-data['start_time']
+
+        if duration >=5:
+            is_valid_read = True
+        
+        if data['max_visibility_perc']>=80:
+            is_valid_read = True
+        
+        if is_valid_read:
+            valid_read_counts+=1
+        print(f'duration: {duration}')
+        print(f'valid_read_counts: {valid_read_counts}')
+        
+    return valid_read_counts
+
 
 # Test cases
 def test_newsfeed_view_validation():

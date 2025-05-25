@@ -10,6 +10,11 @@ This directory contains solutions to the Python interview questions from the mai
 4. **q004_fixed_buffer_stream.py** - Solution for fixed-size buffer for processing event streams
 5. **q005_average_rating_category.py** - Solution to calculate average ratings per movie category
 6. **q006_top_n_movies.py** - Solution to find top N movies by rating for each category
+7. **q007_average_movie_ratings.py** - Solution to calculate average rating per movie
+8. **q008_newsfeed_validation.py** - Solution for news feed view validation
+9. **q009_photo_upload_processing.py** - Solution for photo upload processing and stats aggregation
+10. **q010_sql_generation.py** - Solution for dynamic SQL INSERT statement generation
+11. **q011_order_batching.py** - Conceptual solution for food delivery order batching feasibility
 
 ## Running Solutions
 
@@ -25,10 +30,4 @@ These solutions correct bugs and implement missing functionality from the origin
 
 ## Additional Solutions to Add
 
-The following solutions still need to be implemented:
-
-- q007_average_movie_ratings.py
-- q008_newsfeed_view_validation.py
-- q009_photo_upload.py
-- q010_sql_generation.py
-- q011_order_batching.py 
+(The list below should be empty after these changes) 

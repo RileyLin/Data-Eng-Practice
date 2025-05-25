@@ -43,9 +43,9 @@ def get_top_n_movies_per_category(movie_data, n):
         
         # Add movie to its category
         if category not in categories:
-            categories[category] = []
-        
-        categories[category].append((title, rating))
+            categories[category] = [(title,rating)]
+        else:
+            categories[category].append((title, rating))
     
     # Sort movies by rating and get top N for each category
     result = {}
