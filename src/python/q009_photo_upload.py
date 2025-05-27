@@ -9,46 +9,71 @@ Implement the function `process_upload_log(log, pending_buffer, stats_aggregator
    - Calculate the upload duration
    - Update the aggregate statistics
 
-The function should handle two types of events:
-- 'upload_start': Log the start time for a specific upload_id
-- 'upload_end': Calculate duration and update stats if successful
+DATA STRUCTURE EXAMPLES:
 
-Log events have this structure:
-{
-    'timestamp': 1000,            # Time in milliseconds (integer)
-    'event_type': 'upload_start', # 'upload_start' or 'upload_end'
-    'upload_id': 'up1',           # Unique identifier for the upload
-    'is_success': True            # Only present in 'upload_end' events
-}
+Input: log (dict)
+- Structure: {'timestamp': int, 'event_type': str, 'upload_id': str, 'is_success': bool (optional)}
+- event_type values: 'upload_start' or 'upload_end'
+- is_success: only present in 'upload_end' events
 
-The pending_buffer keeps track of uploads in progress: { 'upload_id': start_timestamp }
-The stats_aggregator tracks overall statistics: { 'total_duration_ms': 0, 'successful_uploads': 0 }
+Example log events:
+- Start event: {'timestamp': 1000, 'event_type': 'upload_start', 'upload_id': 'up1'}
+- Successful end: {'timestamp': 1150, 'event_type': 'upload_end', 'upload_id': 'up1', 'is_success': True}
+- Failed end: {'timestamp': 1200, 'event_type': 'upload_end', 'upload_id': 'up2', 'is_success': False}
 
-Example:
-    pending_buffer = {}
-    stats_aggregator = {'total_duration_ms': 0, 'successful_uploads': 0}
-    
-    # Process logs
-    process_upload_log(
-        {'timestamp': 1000, 'event_type': 'upload_start', 'upload_id': 'up1'},
-        pending_buffer, stats_aggregator)
-    
-    process_upload_log(
-        {'timestamp': 1050, 'event_type': 'upload_start', 'upload_id': 'up2'},
-        pending_buffer, stats_aggregator)
-    
-    process_upload_log(
-        {'timestamp': 1150, 'event_type': 'upload_end', 'upload_id': 'up1', 'is_success': True},
-        pending_buffer, stats_aggregator)
-    # Duration for up1: 1150 - 1000 = 150ms
-    # After processing: stats_aggregator = {'total_duration_ms': 150, 'successful_uploads': 1}
-    
-    process_upload_log(
-        {'timestamp': 1250, 'event_type': 'upload_end', 'upload_id': 'up2', 'is_success': True},
-        pending_buffer, stats_aggregator)
-    # Duration for up2: 1250 - 1050 = 200ms
-    # After processing: stats_aggregator = {'total_duration_ms': 350, 'successful_uploads': 2}
-    # Average upload time: 350 / 2 = 175ms
+Input/Output: pending_buffer (dict)
+- Structure: {upload_id: start_timestamp}
+- Tracks uploads currently in progress
+- Example: {'up1': 1000, 'up2': 1050}
+
+Input/Output: stats_aggregator (dict)
+- Structure: {'total_duration_ms': int, 'successful_uploads': int}
+- Accumulates statistics for successful uploads only
+- Example: {'total_duration_ms': 350, 'successful_uploads': 2}
+
+PROCESSING FLOW EXAMPLE:
+
+Initial state:
+pending_buffer = {}
+stats_aggregator = {'total_duration_ms': 0, 'successful_uploads': 0}
+
+Step 1: Process upload_start
+log = {'timestamp': 1000, 'event_type': 'upload_start', 'upload_id': 'up1'}
+→ pending_buffer = {'up1': 1000}
+→ stats_aggregator unchanged
+
+Step 2: Process another upload_start
+log = {'timestamp': 1050, 'event_type': 'upload_start', 'upload_id': 'up2'}
+→ pending_buffer = {'up1': 1000, 'up2': 1050}
+→ stats_aggregator unchanged
+
+Step 3: Process successful upload_end
+log = {'timestamp': 1150, 'event_type': 'upload_end', 'upload_id': 'up1', 'is_success': True}
+→ Duration = 1150 - 1000 = 150ms
+→ pending_buffer = {'up2': 1050} (up1 removed)
+→ stats_aggregator = {'total_duration_ms': 150, 'successful_uploads': 1}
+
+Step 4: Process failed upload_end
+log = {'timestamp': 1250, 'event_type': 'upload_end', 'upload_id': 'up2', 'is_success': False}
+→ pending_buffer = {} (up2 removed)
+→ stats_aggregator unchanged (failed uploads not counted)
+
+Step 5: Process upload_end without matching start (edge case)
+log = {'timestamp': 1300, 'event_type': 'upload_end', 'upload_id': 'up3', 'is_success': True}
+→ No matching start found, ignore
+→ pending_buffer = {}
+→ stats_aggregator unchanged
+
+Final state:
+pending_buffer = {}
+stats_aggregator = {'total_duration_ms': 150, 'successful_uploads': 1}
+Average upload time = 150 / 1 = 150ms
+
+Edge Cases:
+- upload_end without matching upload_start: Ignore
+- Failed uploads (is_success=False): Remove from pending but don't update stats
+- Duplicate upload_start for same upload_id: Overwrite previous start time
+- Missing is_success field in upload_end: Treat as failed
 """
 
 def process_upload_log(log, pending_buffer, stats_aggregator):
@@ -65,8 +90,28 @@ def process_upload_log(log, pending_buffer, stats_aggregator):
     Returns:
         None (updates pending_buffer and stats_aggregator in-place)
     """
-    # TODO: Implement your solution here
-    pass
+    event_type = log['event_type']
+    upload_id = log['upload_id']
+    timestamp = log['timestamp']
+    
+    if event_type == 'upload_start':
+        # Record the start time for this upload
+        pending_buffer[upload_id] = timestamp
+        
+    elif event_type == 'upload_end':
+        # Check if we have a matching start event
+        if upload_id in pending_buffer:
+            start_timestamp = pending_buffer[upload_id]
+            
+            # Remove from pending buffer regardless of success
+            del pending_buffer[upload_id]
+            
+            # Only update stats if upload was successful
+            is_success = log.get('is_success', False)
+            if is_success:
+                duration_ms = timestamp - start_timestamp
+                stats_aggregator['total_duration_ms'] += duration_ms
+                stats_aggregator['successful_uploads'] += 1
 
 # Test cases
 def test_photo_upload_processing():

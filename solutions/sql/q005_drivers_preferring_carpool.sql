@@ -9,19 +9,25 @@ WITH DriverRideCounts AS (
     SELECT
         fr.driver_user_key,
         SUM(CASE WHEN drt.ride_type_name = 'Carpool' THEN 1 ELSE 0 END) AS carpool_rides_count,
-        SUM(CASE WHEN drt.ride_type_name != 'Carpool' THEN 1 ELSE 0 END) AS regular_rides_count
+        SUM(CASE WHEN drt.ride_type_name != 'Carpool' AND drt.ride_type_name IS NOT NULL THEN 1 ELSE 0 END) AS regular_rides_count
+        -- Assuming 'regular' means any defined ride type that is not 'Carpool'. 
+        -- If 'regular' is a specific type like 'Standard', the condition would be `drt.ride_type_name = 'Standard'`.
     FROM
         fact_rides fr
     JOIN
         dim_ride_type drt ON fr.ride_type_key = drt.ride_type_key
     WHERE
-        fr.overall_trip_date_key >= (CURRENT_DATE - INTERVAL '30 days')
+        fr.end_timestamp >= (CURRENT_DATE - INTERVAL '30 days') -- Filter for the last 30 days
+        AND fr.end_timestamp < CURRENT_DATE -- Ensure we don't include today if it's partial
     GROUP BY
         fr.driver_user_key
 ),
-TotalDistinctDrivers AS (
+TotalDistinctDriversInPeriod AS (
     SELECT COUNT(DISTINCT driver_user_key) as total_drivers
-    FROM DriverRideCounts
+    FROM fact_rides
+    WHERE
+        end_timestamp >= (CURRENT_DATE - INTERVAL '30 days') 
+        AND end_timestamp < CURRENT_DATE
 ),
 DriversPreferringCarpool AS (
     SELECT
@@ -37,63 +43,98 @@ SELECT
         ELSE 0.0
     END AS percentage_drivers_preferring_carpool
 FROM
-    DriversPreferringCarpool dpc, TotalDistinctDrivers tdd;
+    DriversPreferringCarpool dpc, TotalDistinctDriversInPeriod tdd;
 
 /*
 Explanation:
 
-This query calculates the percentage of drivers who complete more carpool rides than regular rides in the last 30 days. 
-Here's how it works:
+1.  `DriverRideCounts` CTE:
+    *   Filters `fact_rides` for rides completed in the last 30 days (using `end_timestamp`). The period is defined as `CURRENT_DATE - INTERVAL '30 days'` up to (but not including) `CURRENT_DATE`.
+    *   Joins with `dim_ride_type` to get the `ride_type_name`.
+    *   Groups by `driver_user_key`.
+    *   For each driver, it counts:
+        *   `carpool_rides_count`: Number of rides where `ride_type_name` is 'Carpool'.
+        *   `regular_rides_count`: Number of rides where `ride_type_name` is not 'Carpool' (and is not NULL, to avoid counting rides with undefined types as regular). This definition of "regular" might need adjustment based on specific business rules (e.g., if regular means only 'Standard' type rides).
 
-1. DriverRideCounts CTE:
-   - Groups by driver_user_key from fact_rides
-   - Calculates two metrics for each driver:
-     a) carpool_rides_count: Number of rides where ride_type_name = 'Carpool'
-     b) regular_rides_count: Number of rides where ride_type_name ≠ 'Carpool'
-   - Filters for rides within the last 30 days
+2.  `TotalDistinctDriversInPeriod` CTE:
+    *   Calculates the total number of distinct drivers who completed *any* ride in the specified 30-day period. This serves as the denominator for the percentage calculation, ensuring it reflects all active drivers in that period.
 
-2. TotalDistinctDrivers CTE:
-   - Gets the total count of distinct drivers who had any rides in the period
-   - This will be our denominator for the percentage calculation
+3.  `DriversPreferringCarpool` CTE:
+    *   Takes the results from `DriverRideCounts`.
+    *   Counts the number of distinct drivers for whom `carpool_rides_count` is greater than `regular_rides_count`.
 
-3. DriversPreferringCarpool CTE:
-   - Counts only drivers where carpool_rides_count > regular_rides_count
-   - These are drivers who did more carpool rides than regular rides
-   - This will be our numerator for the percentage calculation
+4.  Final Query:
+    *   Calculates the percentage: (`drivers_preferring_carpool_count` * 100.0) / `total_drivers`.
+    *   Uses a `CASE` statement to prevent division by zero if `total_drivers` is 0.
+    *   The result is a single percentage value.
 
-4. Final Query:
-   - Calculates (drivers_preferring_carpool_count / total_drivers) * 100
-   - Uses a CASE statement to handle division by zero (if there are no drivers)
+Schema Assumptions:
+fact_rides:
+- ride_id (PK)
+- driver_user_key (FK)
+- ride_type_key (FK -> dim_ride_type)
+- end_timestamp (Timestamp of ride completion)
+- ...
 
-This metric is useful for:
-- Measuring driver adoption of the carpool feature
-- Identifying driver preferences
-- Tracking the effectiveness of incentives for carpool rides
-- Informing marketing and operational strategies
+dim_ride_type:
+- ride_type_key (PK)
+- ride_type_name ('Carpool', 'Regular', 'Standard', 'Premium', etc.)
+- ...
 
-Alternative implementations:
+Example DDL & DML for testing:
 
-1. Using a subquery approach (may be more readable for some):
-   
-   SELECT
-       (COUNT(DISTINCT CASE WHEN carpool_rides_count > regular_rides_count THEN driver_user_key END) * 100.0) /
-       NULLIF(COUNT(DISTINCT driver_user_key), 0) AS percentage_drivers_preferring_carpool
-   FROM (
-       SELECT
-           fr.driver_user_key,
-           SUM(CASE WHEN drt.ride_type_name = 'Carpool' THEN 1 ELSE 0 END) AS carpool_rides_count,
-           SUM(CASE WHEN drt.ride_type_name != 'Carpool' THEN 1 ELSE 0 END) AS regular_rides_count
-       FROM
-           fact_rides fr
-       JOIN
-           dim_ride_type drt ON fr.ride_type_key = drt.ride_type_key
-       WHERE
-           fr.overall_trip_date_key >= (CURRENT_DATE - INTERVAL '30 days')
-       GROUP BY
-           fr.driver_user_key
-   ) driver_counts;
+DROP TABLE IF EXISTS dim_ride_type;
+CREATE TABLE dim_ride_type (
+    ride_type_key INTEGER PRIMARY KEY,
+    ride_type_name TEXT NOT NULL
+);
 
-2. For databases without support for INTERVAL, using a date key comparison:
-   
-   WHERE fr.overall_trip_date_key >= 20230101  -- Assuming YYYYMMDD format for date_key
+DROP TABLE IF EXISTS fact_rides;
+CREATE TABLE fact_rides (
+    ride_id INTEGER PRIMARY KEY,
+    driver_user_key INTEGER,
+    ride_type_key INTEGER,
+    end_timestamp TIMESTAMP, -- Assuming this is available and used for period filtering
+    FOREIGN KEY (ride_type_key) REFERENCES dim_ride_type(ride_type_key)
+);
+
+INSERT INTO dim_ride_type (ride_type_key, ride_type_name) VALUES
+(1, 'Standard'), (2, 'Carpool'), (3, 'Premium');
+
+-- Sample data for the last 30 days (adjust CURRENT_DATE or use fixed dates for testing)
+INSERT INTO fact_rides (ride_id, driver_user_key, ride_type_key, end_timestamp) VALUES
+-- Driver 1: 1 Carpool, 2 Standard
+(1, 101, 2, CURRENT_DATE - INTERVAL '5 days'),
+(2, 101, 1, CURRENT_DATE - INTERVAL '6 days'),
+(3, 101, 1, CURRENT_DATE - INTERVAL '7 days'),
+-- Driver 2: 3 Carpool, 1 Standard
+(4, 102, 2, CURRENT_DATE - INTERVAL '2 days'),
+(5, 102, 2, CURRENT_DATE - INTERVAL '3 days'),
+(6, 102, 2, CURRENT_DATE - INTERVAL '4 days'),
+(7, 102, 1, CURRENT_DATE - INTERVAL '5 days'),
+-- Driver 3: 2 Carpool, 0 Standard
+(8, 103, 2, CURRENT_DATE - INTERVAL '1 day'),
+(9, 103, 2, CURRENT_DATE - INTERVAL '2 days'),
+-- Driver 4: 1 Standard (no carpool)
+(10, 104, 1, CURRENT_DATE - INTERVAL '10 days'),
+-- Driver 5: 1 Premium (not carpool, not standard based on strict definition)
+(11, 105, 3, CURRENT_DATE - INTERVAL '12 days'),
+-- Driver 6: Only rides outside the 30-day window
+(12, 106, 2, CURRENT_DATE - INTERVAL '35 days');
+
+-- Expected Analysis (using 'Standard' as regular for carpool_rides_count > regular_rides_count):
+-- Driver 101: 1 Carpool, 2 Standard. (1 > 2 is False)
+-- Driver 102: 3 Carpool, 1 Standard. (3 > 1 is True) -> Prefers Carpool
+-- Driver 103: 2 Carpool, 0 Standard. (2 > 0 is True) -> Prefers Carpool
+-- Driver 104: 0 Carpool, 1 Standard. (0 > 1 is False)
+-- Driver 105: 0 Carpool, 0 Standard (Premium is not Standard). (0 > 0 is False)
+
+-- Total distinct drivers in period (101, 102, 103, 104, 105) = 5
+-- Drivers preferring carpool = 2 (102, 103)
+-- Percentage = (2 / 5) * 100.0 = 40.0
+
+-- Expected output:
+-- percentage_drivers_preferring_carpool
+-- ---------------------------------------
+-- 40.0
 */ 

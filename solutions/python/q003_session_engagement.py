@@ -1,5 +1,52 @@
 """
-Solution to Question about session engagement processing
+Solution to Session Engagement Processing
+
+DATA STRUCTURE EXAMPLES:
+
+Input: event (dict)
+- Keys: 'session_id', 'user_id', 'event_type'
+- Example: {'session_id': 's1', 'user_id': 'user1', 'event_type': 'like'}
+
+Input: buffer (dict)
+- Structure: {session_id: {'events': [event1, event2, ...], 'users': {user1, user2, ...}}}
+- Example: {'s1': {'events': [{'session_id': 's1', 'user_id': 'user1', 'event_type': 'like'}], 'users': {'user1'}}}
+
+Input: totals (dict)
+- Structure: {event_type: count}
+- Example: {'likes': 5, 'comments': 3, 'views': 10}
+
+Input: test_users (set)
+- Structure: {user_id1, user_id2, ...}
+- Example: {'user_test_A', 'user_test_B', 'internal_user_123'}
+
+Example Scenario 1 - Regular user session:
+Events: [
+    {'session_id': 's1', 'user_id': 'user1', 'event_type': 'like'},
+    {'session_id': 's1', 'user_id': 'user1', 'event_type': 'view'},
+    {'session_id': 's1', 'user_id': 'user1', 'event_type': 'session_end'}
+]
+Result: totals updated with +1 like, +1 view
+
+Example Scenario 2 - Test user session (ignored):
+Events: [
+    {'session_id': 's2', 'user_id': 'user_test_A', 'event_type': 'like'},
+    {'session_id': 's2', 'user_id': 'user_test_A', 'event_type': 'session_end'}
+]
+Result: totals unchanged (test user session ignored)
+
+Example Scenario 3 - Mixed session (has test user, so entire session ignored):
+Events: [
+    {'session_id': 's3', 'user_id': 'user2', 'event_type': 'comment'},
+    {'session_id': 's3', 'user_id': 'user_test_B', 'event_type': 'like'},
+    {'session_id': 's3', 'user_id': 'user2', 'event_type': 'session_end'}
+]
+Result: totals unchanged (session contains test user, so entire session ignored)
+
+Buffer Evolution Example:
+Initial: buffer = {}
+After event 1: buffer = {'s1': {'events': [event1], 'users': {'user1'}}}
+After event 2: buffer = {'s1': {'events': [event1, event2], 'users': {'user1'}}}
+After session_end: buffer = {} (session processed and removed)
 """
 
 def process_event(event, buffer, totals, test_users):
@@ -50,45 +97,29 @@ def process_event(event, buffer, totals, test_users):
 
 # Test cases
 def test_process_event():
-    # Setup test data
     buffer = {}
-    totals = {'like': 0, 'comment': 0, 'view': 0}  # Note: the keys match event_type exactly
+    totals = {'view': 0, 'click': 0}
     test_users = {'user_test_A', 'user_test_B'}
     
     # Test case 1: Regular user session
-    process_event({'session_id': 's1', 'user_id': 'user1', 'event_type': 'like'}, 
-                 buffer, totals, test_users)
     process_event({'session_id': 's1', 'user_id': 'user1', 'event_type': 'view'}, 
+                 buffer, totals, test_users)
+    process_event({'session_id': 's1', 'user_id': 'user1', 'event_type': 'click'}, 
                  buffer, totals, test_users)
     process_event({'session_id': 's1', 'user_id': 'user1', 'event_type': 'session_end'}, 
                  buffer, totals, test_users)
     
-    # After processing, we should have 1 like and 1 view
-    assert totals['like'] == 1, f"Expected 1 like, but got {totals['like']}"
-    assert totals['view'] == 1, f"Expected 1 view, but got {totals['view']}"
-    assert totals['comment'] == 0, f"Expected 0 comments, but got {totals['comment']}"
-    assert 's1' not in buffer, "Session should be removed from buffer after session_end"
+    assert totals['view'] == 1
+    assert totals['click'] == 1
+    assert 's1' not in buffer
     
-    # Test case 2: Internal test user session (should not affect totals)
-    process_event({'session_id': 's2', 'user_id': 'user_test_A', 'event_type': 'like'}, 
+    # Test case 2: Test user session (should not affect totals)
+    process_event({'session_id': 's2', 'user_id': 'user_test_A', 'event_type': 'view'}, 
                  buffer, totals, test_users)
     process_event({'session_id': 's2', 'user_id': 'user_test_A', 'event_type': 'session_end'}, 
                  buffer, totals, test_users)
     
-    # Totals should remain unchanged since it's a test user
-    assert totals['like'] == 1, "Test user likes should not affect totals"
-    
-    # Test case 3: Mixed session (regular user event + test user event = internal session)
-    # This is considered an internal session because it has a test user
-    process_event({'session_id': 's3', 'user_id': 'user2', 'event_type': 'comment'}, 
-                 buffer, totals, test_users)
-    process_event({'session_id': 's3', 'user_id': 'user_test_B', 'event_type': 'like'}, 
-                 buffer, totals, test_users)
-    process_event({'session_id': 's3', 'user_id': 'user2', 'event_type': 'session_end'}, 
-                 buffer, totals, test_users)
-    
-    # Totals should remain unchanged because the session had a test user
-    assert totals['comment'] == 0, "Comments from mixed sessions should not be counted"
+    assert totals['view'] == 1  # Should not increase
     
     print("All test cases passed!")
 

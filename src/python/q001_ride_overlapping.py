@@ -7,20 +7,44 @@ with integer times, write a Python function
 can theoretically complete all their requested rides (i.e., none of their
 own rides overlap), and `False` otherwise.
 
-Example Input:
+DATA STRUCTURE EXAMPLES:
+
+Input: requested_rides (List[Tuple[int, int]])
+- Each tuple represents (start_time, end_time) for a single ride
+- Times are integers (could represent minutes, hours, etc.)
+- end_time > start_time for valid rides
+
+Example 1 - Non-overlapping rides:
 requested_rides = [(0, 30), (30, 60), (70, 90)]
+Visualization:
+Time:  0    30   60   70   90
+       |----| |----| |----| 
+       Ride1  Ride2  Ride3
 Expected Output: True
 
-Example Input:
+Example 2 - Overlapping rides:
 requested_rides = [(0, 60), (30, 90)]
+Visualization:
+Time:  0    30   60   90
+       |---------|
+            |---------|
+           Ride1  Ride2 (overlap from 30-60)
 Expected Output: False
 
-Example Input:
+Example 3 - Single ride:
 requested_rides = [(10, 20)]
 Expected Output: True
 
-Example Input:
+Example 4 - Empty list:
 requested_rides = []
+Expected Output: True
+
+Example 5 - Edge case (rides touching but not overlapping):
+requested_rides = [(0, 30), (30, 60)]
+Visualization:
+Time:  0    30   60
+       |----||----| 
+       Ride1 Ride2 (touching at time 30, but not overlapping)
 Expected Output: True
 
 Follow-up consideration: How would this problem change if we were considering 
