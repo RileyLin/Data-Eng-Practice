@@ -90,28 +90,29 @@ def process_upload_log(log, pending_buffer, stats_aggregator):
     Returns:
         None (updates pending_buffer and stats_aggregator in-place)
     """
-    event_type = log['event_type']
-    upload_id = log['upload_id']
+    
     timestamp = log['timestamp']
+
+    event_type = log['event_type']
+
+    upload_id = log['upload_id']
+
+    if not log: 
+        return 
     
     if event_type == 'upload_start':
-        # Record the start time for this upload
         pending_buffer[upload_id] = timestamp
-        
-    elif event_type == 'upload_end':
-        # Check if we have a matching start event
-        if upload_id in pending_buffer:
-            start_timestamp = pending_buffer[upload_id]
-            
-            # Remove from pending buffer regardless of success
+    
+    elif event_type == 'upload_end' and log['is_success']:
+
+        if upload_id in pending_buffer: 
+            start_time = pending_buffer[upload_id]
+            duration = timestamp-start_time
+            stats_aggregator['total_duration_ms']+=duration
+            stats_aggregator['successful_uploads']+=1
             del pending_buffer[upload_id]
+
             
-            # Only update stats if upload was successful
-            is_success = log.get('is_success', False)
-            if is_success:
-                duration_ms = timestamp - start_timestamp
-                stats_aggregator['total_duration_ms'] += duration_ms
-                stats_aggregator['successful_uploads'] += 1
 
 # Test cases
 def test_photo_upload_processing():

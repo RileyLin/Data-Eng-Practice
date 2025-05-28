@@ -6,20 +6,22 @@ Write a SQL query to find post_ids for posts that received zero 'like' or 'react
 Schema based on setup_scripts/scenario_2_short_video_setup.sql:
 
 dim_posts_shortvideo:
-- post_key (PK, INTEGER, AUTOINCREMENT)
-- post_id (VARCHAR(50), UNIQUE NOT NULL) -- Public facing ID
+- post_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- post_id (VARCHAR(50) UNIQUE NOT NULL) -- Public facing ID if different from post_key
 - creator_user_key (INTEGER, FK to dim_users_shortvideo)
 - original_post_key (INTEGER, FK to dim_posts_shortvideo) -- Self-ref for original post
 - parent_post_key (INTEGER, FK to dim_posts_shortvideo) -- Post that was shared
-- share_depth_level (INTEGER, DEFAULT 0)
+- share_depth_level (INTEGER DEFAULT 0)
 - created_timestamp (TEXT, ISO 8601 format)
-- is_original (BOOLEAN, DEFAULT TRUE)
+- is_original (BOOLEAN DEFAULT TRUE)
 - content_text (TEXT)
 - video_url (TEXT)
-- ... (Other FKs: creator_user_key, original_post_key, parent_post_key)
+- FOREIGN KEY (creator_user_key) REFERENCES dim_users_shortvideo(user_key)
+- FOREIGN KEY (original_post_key) REFERENCES dim_posts_shortvideo(post_key)
+- FOREIGN KEY (parent_post_key) REFERENCES dim_posts_shortvideo(post_key)
 
 fact_engagement_events_shortvideo:
-- event_id (PK, INTEGER, AUTOINCREMENT)
+- event_id (INTEGER PRIMARY KEY AUTOINCREMENT)
 - user_key (INTEGER, FK to dim_users_shortvideo) -- User performing engagement
 - post_key (INTEGER, FK to dim_posts_shortvideo) -- Post being engaged with
 - engagement_type_key (INTEGER, FK to dim_engagement_types_shortvideo)
@@ -27,14 +29,25 @@ fact_engagement_events_shortvideo:
 - event_date_key (INTEGER, FK to dim_date)
 - event_time_key (INTEGER, FK to dim_time)
 - event_metadata (TEXT, JSON stored as TEXT)
-- ... (Other FKs: user_key, post_key, engagement_type_key, event_date_key, event_time_key)
+- FOREIGN KEY (user_key) REFERENCES dim_users_shortvideo(user_key)
+- FOREIGN KEY (post_key) REFERENCES dim_posts_shortvideo(post_key)
+- FOREIGN KEY (engagement_type_key) REFERENCES dim_engagement_types_shortvideo(engagement_type_key)
+- FOREIGN KEY (event_date_key) REFERENCES dim_date(date_key)
+- FOREIGN KEY (event_time_key) REFERENCES dim_time(time_key)
 
 dim_engagement_types_shortvideo:
-- engagement_type_key (PK, INTEGER, AUTOINCREMENT)
-- engagement_type_name (TEXT, UNIQUE NOT NULL) -- e.g., 'view', 'like', 'comment', 'share'
+- engagement_type_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- engagement_type_name (TEXT UNIQUE NOT NULL) -- e.g., 'view', 'like', 'comment', 'share', 'follow'
 - description (TEXT)
-- is_active (BOOLEAN, DEFAULT TRUE)
+- is_active (BOOLEAN DEFAULT TRUE)
 
+dim_users_shortvideo:
+- user_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- user_id (VARCHAR(50) UNIQUE NOT NULL)
+- username (TEXT)
+- created_at (TEXT, ISO 8601 format)
+- user_type (TEXT) -- e.g., 'creator', 'viewer'
+- is_internal (BOOLEAN DEFAULT FALSE)
 
 The question mentions 'like' or 'react' events. The `dim_engagement_types_shortvideo` table has 'like', 'comment', 'share', 'view'.
 Assuming 'react' is similar to 'like' or perhaps a broader category.

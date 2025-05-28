@@ -6,21 +6,44 @@ A valid read is defined as either:
 1. The post was viewed for at least 5 seconds (view_time_ms >= 5000)
 2. The post reached at least 80% visibility on screen (visibility_percent >= 80.0)
 
-Schema (from scenario_6_news_feed_setup.sql):
+Schema based on setup_scripts/scenario_6_news_feed_setup.sql:
+
 fact_feed_events_feed:
-- event_id (PK)
-- user_key (FK)
-- content_item_key (FK) -- Represents the post
-- event_type_key (FK)
-- event_timestamp (TIMESTAMP)
+- event_id (INTEGER PRIMARY KEY AUTOINCREMENT)
+- user_key (INTEGER, FK to dim_users_feed)
+- content_item_key (INTEGER, FK to dim_content_items_feed) -- Represents the post
+- event_type_key (INTEGER, FK to dim_event_types_feed)
+- event_timestamp (TEXT NOT NULL, ISO 8601 format)
+- date_key (INTEGER, FK to dim_date)
+- time_key (INTEGER, FK to dim_time)
+- session_id (VARCHAR(100))
+- position_in_feed (INTEGER)
 - view_time_ms (INTEGER) -- Milliseconds the content was viewed
-- visibility_percent (DECIMAL) -- Max percentage of content visible
-- ...
+- visibility_percent (REAL) -- Max percentage of content visible
+- is_sponsored (BOOLEAN DEFAULT FALSE)
+- metadata_json (TEXT)
+- FOREIGN KEY (user_key) REFERENCES dim_users_feed(user_key)
+- FOREIGN KEY (content_item_key) REFERENCES dim_content_items_feed(content_item_key)
+- FOREIGN KEY (event_type_key) REFERENCES dim_event_types_feed(event_type_key)
+- FOREIGN KEY (date_key) REFERENCES dim_date(date_key)
+- FOREIGN KEY (time_key) REFERENCES dim_time(time_key)
 
 dim_event_types_feed:
-- event_type_key (PK)
-- event_name (TEXT) -- e.g., 'view_start', 'impression', 'view_complete'
-- ...
+- event_type_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- event_name (TEXT UNIQUE NOT NULL) -- e.g., 'impression', 'click', 'view_start', 'view_complete', 'like', 'share_intent', 'scroll_deep'
+- event_category (TEXT)
+
+dim_users_feed:
+- user_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- user_id (VARCHAR(50) UNIQUE NOT NULL)
+- username (TEXT)
+- registration_date (TEXT)
+
+dim_content_items_feed:
+- content_item_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- content_id (VARCHAR(50) UNIQUE NOT NULL)
+- title (TEXT NOT NULL)
+- ... (other attributes)
 
 Expected Output:
 - user_key

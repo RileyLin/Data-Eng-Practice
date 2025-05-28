@@ -7,22 +7,32 @@ that received at least one 'reaction' event but zero 'comment' events on the sam
 Schema based on setup_scripts/scenario_2_short_video_setup.sql:
 
 dim_posts_shortvideo:
-- post_key (PK)
-- post_id (VARCHAR(50))
+- post_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- post_id (VARCHAR(50) UNIQUE NOT NULL)
 - created_timestamp (TEXT, ISO 8601 format)
-- ...
+- creator_user_key (INTEGER, FK to dim_users_shortvideo)
+- original_post_key (INTEGER, FK to dim_posts_shortvideo)
+- parent_post_key (INTEGER, FK to dim_posts_shortvideo)
+- share_depth_level (INTEGER DEFAULT 0)
+- is_original (BOOLEAN DEFAULT TRUE)
+- content_text (TEXT)
+- video_url (TEXT)
 
 fact_engagement_events_shortvideo:
-- event_id (PK)
-- post_key (FK)
-- engagement_type_key (FK)
+- event_id (INTEGER PRIMARY KEY AUTOINCREMENT)
+- user_key (INTEGER, FK to dim_users_shortvideo)
+- post_key (INTEGER, FK to dim_posts_shortvideo)
+- engagement_type_key (INTEGER, FK to dim_engagement_types_shortvideo)
 - event_timestamp (TEXT, ISO 8601 format)
-- ...
+- event_date_key (INTEGER, FK to dim_date)
+- event_time_key (INTEGER, FK to dim_time)
+- event_metadata (TEXT, JSON stored as TEXT)
 
 dim_engagement_types_shortvideo:
-- engagement_type_key (PK)
-- engagement_type_name (TEXT) -- e.g., 'view', 'like', 'comment', 'share', 'reaction'
-- ...
+- engagement_type_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- engagement_type_name (TEXT UNIQUE NOT NULL) -- e.g., 'view', 'like', 'comment', 'share', 'reaction', 'follow'
+- description (TEXT)
+- is_active (BOOLEAN DEFAULT TRUE)
 
 Expected output:
 A single percentage value.

@@ -182,18 +182,18 @@ INSERT INTO dim_devices_msg (device_id, device_type, platform, app_version) VALU
 -- fact_messages_msg
 -- Cathy sends a text to Sam in convo_1_2
 INSERT INTO fact_messages_msg (message_guid, conversation_key, sender_user_key, message_type_key, message_status_key, device_key, message_timestamp, server_received_timestamp, date_key, time_key, character_count, platform_specific_payload) VALUES
-('msg_guid_001', 1, 1, 1, 4, 1, '2023-05-01 15:00:00', '2023-05-01 15:00:01', 20230501, 150000, 25, '{'text_content': "Hello Sam! How are you?"}');
+('msg_guid_001', 1, 1, 1, 4, 1, '2023-05-01 15:00:00', '2023-05-01 15:00:01', 20230501, 150000, 25, '{"text_content": "Hello Sam! How are you?"}');
 
 -- Sam replies to Cathy in convo_1_2
 INSERT INTO fact_messages_msg (message_guid, conversation_key, sender_user_key, message_type_key, message_status_key, device_key, message_timestamp, server_received_timestamp, date_key, time_key, character_count, is_reply, replied_to_message_guid, platform_specific_payload) VALUES
-('msg_guid_002', 1, 2, 1, 3, 2, '2023-05-01 15:02:30', '2023-05-01 15:02:31', 20230501, 150230, 18, TRUE, 'msg_guid_001', '{'text_content': "I am good, Cathy!"}');
+('msg_guid_002', 1, 2, 1, 3, 2, '2023-05-01 15:02:30', '2023-05-01 15:02:31', 20230501, 150230, 18, TRUE, 'msg_guid_001', '{"text_content": "I am good, Cathy!"}');
 
 -- Cathy sends an image in group chat convo_group_xyz
 INSERT INTO fact_messages_msg (message_guid, conversation_key, sender_user_key, message_type_key, message_status_key, device_key, message_timestamp, server_received_timestamp, date_key, time_key, media_count, platform_specific_payload) VALUES
-('msg_guid_003', 2, 1, 2, 2, 1, '2023-05-02 16:10:00', '2023-05-02 16:10:05', 20230502, 161000, 1, '{'image_url': "http://example.com/image.jpg"}');
+('msg_guid_003', 2, 1, 2, 2, 1, '2023-05-02 16:10:00', '2023-05-02 16:10:05', 20230502, 161000, 1, '{"image_url": "http://example.com/image.jpg"}');
 
 -- Greg sends a reaction to Cathy's image
 INSERT INTO fact_messages_msg (message_guid, conversation_key, sender_user_key, message_type_key, message_status_key, device_key, message_timestamp, server_received_timestamp, date_key, time_key, is_reply, replied_to_message_guid, platform_specific_payload) VALUES
-('msg_guid_004', 2, 3, 3, 2, 3, '2023-05-02 16:11:00', '2023-05-02 16:11:01', 20230502, 161000, TRUE, 'msg_guid_003', '{'reaction_emoji': "👍"}');
+('msg_guid_004', 2, 3, 3, 2, 3, '2023-05-02 16:11:00', '2023-05-02 16:11:01', 20230502, 161000, TRUE, 'msg_guid_003', '{"reaction_emoji": "👍"}');
 
 SELECT 'Scenario 8: FB Messenger setup complete. Tables created and sample data inserted.'; 

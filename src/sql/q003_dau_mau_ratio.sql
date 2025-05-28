@@ -4,15 +4,49 @@ Question 5.3.1: DAU Over MAU Ratio
 Write a SQL query to calculate the DAU/MAU ratio (stickiness) for each of the last 30 days, 
 showing the trend over time.
 
-Schema:
-user_activity:
-- activity_id (PK)
-- user_id
-- activity_type
-- activity_timestamp
-- device_type
-- os_version
-- ...
+Schema based on setup_scripts/scenario_5_dau_mau_analysis_setup.sql:
+
+fact_user_activity_dau:
+- activity_id (INTEGER PRIMARY KEY AUTOINCREMENT)
+- user_key (INTEGER, FK to dim_users_dau)
+- date_key (INTEGER, FK to dim_date)
+- time_key (INTEGER, FK to dim_time)
+- feature_key (INTEGER, FK to dim_features_dau)
+- device_key (INTEGER, FK to dim_devices_dau)
+- geography_key (INTEGER, FK to dim_geographies_dau)
+- activity_type_key (INTEGER, FK to dim_activity_types_dau)
+- activity_timestamp (TEXT NOT NULL, ISO 8601 format)
+- session_id (VARCHAR(100))
+- duration_seconds (INTEGER)
+- FOREIGN KEY (user_key) REFERENCES dim_users_dau(user_key)
+- FOREIGN KEY (date_key) REFERENCES dim_date(date_key)
+- FOREIGN KEY (time_key) REFERENCES dim_time(time_key)
+- FOREIGN KEY (feature_key) REFERENCES dim_features_dau(feature_key)
+- FOREIGN KEY (device_key) REFERENCES dim_devices_dau(device_key)
+- FOREIGN KEY (geography_key) REFERENCES dim_geographies_dau(geography_key)
+- FOREIGN KEY (activity_type_key) REFERENCES dim_activity_types_dau(activity_type_key)
+
+dim_users_dau:
+- user_key (INTEGER PRIMARY KEY AUTOINCREMENT)
+- user_id (VARCHAR(50) UNIQUE NOT NULL)
+- registration_timestamp (TEXT, ISO 8601 format)
+- user_segment_key (INTEGER, FK to dim_user_segments_dau)
+- gender (TEXT)
+- birth_date (TEXT, YYYY-MM-DD)
+- account_status (TEXT DEFAULT 'active')
+- is_test_account (BOOLEAN DEFAULT FALSE)
+- FOREIGN KEY (user_segment_key) REFERENCES dim_user_segments_dau(user_segment_key)
+
+dim_date:
+- date_key (INTEGER PRIMARY KEY)
+- full_date (DATE)
+- year (INTEGER)
+- quarter (INTEGER)
+- month (INTEGER)
+- day_of_month (INTEGER)
+- day_of_week (INTEGER)
+- week_of_year (INTEGER)
+- is_weekend (BOOLEAN)
 
 Expected Output:
 A result set with columns:
