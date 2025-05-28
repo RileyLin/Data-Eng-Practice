@@ -28,4 +28,14 @@ The query should return a single row with a percentage value showing what propor
 of all ride segments (from fact_ride_segments) belong to 'Carpool' rides.
 */
 
--- Write your SQL query here: 
+-- Write your SQL query here:
+SELECT
+    (COUNT(CASE WHEN drt.ride_type_name = 'Carpool' THEN frs.ride_segment_id ELSE NULL END) * 100.0)
+    / NULLIF(COUNT(frs.ride_segment_id), 0) AS carpool_segment_percentage
+FROM
+    fact_ride_segments frs
+JOIN
+    fact_rides fr ON frs.ride_id = fr.ride_id
+JOIN
+    dim_ride_type drt ON fr.ride_type_key = drt.ride_type_key;
+

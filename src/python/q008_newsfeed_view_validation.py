@@ -74,88 +74,85 @@ def process_newsfeed_log(log, session_buffer):
         None (updates session_buffer in-place)
     """
     
-    event_type = log.get('event_type')
-    session_id = log.get('session_id')
-    post_id = log.get('post_id')
-    time_stamp = log.get('time_stamp')
-    percentage = log.get('percentage')
+    if not log: 
+        return
 
-    if not all([event_type,session_id,post_id,isinstance(time_stamp,(int,float))]):
+    session_id = log['session_id']
+    post_id = log['post_id']
+    time_stamp = log['time_stamp']
+    event_type = log['event_type']
+    percentage = log['percentage']
+
+    if not all(key in log for key in ['session_id','post_id','time_stamp','event_type','percentage']):
         return
 
     if session_id not in session_buffer:
-        session_buffer[session_id]={}
-    
+        session_buffer[session_id] = {}
+
     if post_id not in session_buffer[session_id]:
         session_buffer[session_id][post_id]={
-            'start_time':None,
+            'start_time' : None,
             'end_time': None,
-            'max_visibility_perc':0,
-            'has_start':False,
-            'has_end':False
+            'max_perc': 0
         }
 
-    post_data = session_buffer[session_id][post_id]
+    
+    current_session = session_buffer[session_id][post_id]
+    current_start_time = current_session['start_time']
+    current_end_time = current_session['end_time']
 
     if event_type =='start':
-        if post_data['start_time'] is not None:
-            post_data['start_time'] = min(post_data['start_time'],time_stamp)
+        if current_session['start_time'] is not None and 'start_time' in current_session: 
+            current_session['start_time'] = min(current_session['start_time'],time_stamp)
+
         else: 
-            post_data['start_time'] = time_stamp
-            post_data['has_start'] = True
-    elif event_type == 'end':
-        if post_data['end_time'] is not None:
-            post_data['end_time'] = max(post_data['end_time'],time_stamp)
-        else:
-            post_data['end_time'] = time_stamp    
-            post_data['has_end']=True
-    
-    if isinstance(percentage,(int,float)):
-        post_data['max_visibility_perc'] = max(post_data['max_visibility_perc'],percentage)
+            current_session['start_time'] = int(time_stamp)
 
-def calculate_session_valid_reads(session_id, session_buffer):
-    """
-    Count the number of posts in a session that meet valid read criteria.
+    elif event_type =='end':
+        if current_session['end_time'] is not None and 'end_time' in current_session: 
+            current_session['end_time'] = max(current_session['end_time'],time_stamp)
+        else: 
+            current_session['end_time'] = int(time_stamp)
+
+
+    current_session['max_perc'] = max(current_session['max_perc'],percentage)
     
+        
+
+def calculate_session_valid_reads(session_id: str, session_buffer: dict) -> int:
+    """
+    Calculates the number of valid post reads for a given session_id based on the buffer.
+
     Args:
-        session_id (str): The session to process
-        session_buffer (dict): Data structure tracking view metrics by session/post
-        
+        session_id: The ID of the session to analyze.
+        session_buffer: The dictionary containing all processed session data.
+
     Returns:
-        int: Count of posts meeting valid read criteria (duration >= 5s OR max_perc >= 80%)
+        The number of posts in the session that meet the valid read criteria.
+
+
+- It was visible on screen for at least 5 seconds
+- OR it reached at least 80% visibility on the screen at some point
+
     """
-    
-    if session_id not in session_buffer:
-        return 0 
-    
-    valid_read_counts = 0
 
-    session_posts = session_buffer[session_id]
-    print(f'session_id: {session_id}')
-    for post_id, data in session_posts.items():
-        is_valid_read = False
+    session = session_buffer[session_id]
 
-        has_defined_start = data['has_start'] and data['start_time'] is not None
-        has_defined_end = data['has_end'] and data['end_time'] is not None
 
-        duration = 0
+    count = 0
 
-        if has_defined_start and has_defined_end and data['end_time']>=data['start_time']:
-            duration = data['end_time']-data['start_time']
+    for post in session: 
+        start = session[post]['start_time']
+        end = session[post]['end_time']
 
-        if duration >=5:
-            is_valid_read = True
-        
-        if data['max_visibility_perc']>=80:
-            is_valid_read = True
-        
-        if is_valid_read:
-            valid_read_counts+=1
-        print(f'duration: {duration}')
-        print(f'valid_read_counts: {valid_read_counts}')
-        
-    return valid_read_counts
-
+        perc = session[post]['max_perc']
+        if (end-start)>=5:
+            count+=1
+        elif perc>=80:
+            count+=1
+        else:
+            continue
+    return count
 
 # Test cases
 def test_newsfeed_view_validation():

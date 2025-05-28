@@ -13,11 +13,113 @@ Key insights:
 
 Time Complexity: O(n + m log m) where n is actions, m is unique orders
 Space Complexity: O(m + d) where m is orders, d is drivers
+
+DATA STRUCTURE EXAMPLES:
+
+Input: actions (List[Dict])
+- Structure: [{'location': str, 'order_no': str (optional), 'action_type': str, 'driver': str}, ...]
+- action_type values: 'pick_up', 'travel', 'drop_off'
+- order_no: only present for 'pick_up' and 'drop_off' actions
+
+Example action dictionaries:
+- Pickup action: {'location': 'A', 'order_no': 'order_1', 'action_type': 'pick_up', 'driver': 'driver_1'}
+- Travel action: {'location': 'B', 'action_type': 'travel', 'driver': 'driver_1'}  # No order_no
+- Dropoff action: {'location': 'C', 'order_no': 'order_1', 'action_type': 'drop_off', 'driver': 'driver_1'}
+
+Input: travel_matrix (List[List[int]])
+- Structure: 2D matrix where travel_matrix[i][j] = travel time from location i to location j
+- Indices correspond to location_mapping values
+- Diagonal elements are 0 (no travel time to same location)
+
+Example travel_matrix:
+travel_matrix = [
+    [0, 5, 10, 15],  # From A (index 0) to [A, B, C, D]
+    [5, 0, 8, 12],   # From B (index 1) to [A, B, C, D]
+    [10, 8, 0, 6],   # From C (index 2) to [A, B, C, D]
+    [15, 12, 6, 0]   # From D (index 3) to [A, B, C, D]
+]
+
+Input: location_mapping (Dict[str, int])
+- Structure: {location_name: matrix_index}
+- Maps location strings to travel_matrix indices
+
+Example location_mapping:
+location_mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+
+DETAILED SCENARIO WALKTHROUGH:
+
+Scenario: Single driver picks up two orders and delivers them
+
+Actions sequence:
+1. {'location': 'A', 'order_no': 'order_1', 'action_type': 'pick_up', 'driver': 'driver_1'}
+2. {'location': 'A', 'action_type': 'travel', 'driver': 'driver_1'}
+3. {'location': 'B', 'order_no': 'order_2', 'action_type': 'pick_up', 'driver': 'driver_1'}
+4. {'location': 'B', 'action_type': 'travel', 'driver': 'driver_1'}
+5. {'location': 'C', 'order_no': 'order_1', 'action_type': 'drop_off', 'driver': 'driver_1'}
+6. {'location': 'C', 'action_type': 'travel', 'driver': 'driver_1'}
+7. {'location': 'D', 'order_no': 'order_2', 'action_type': 'drop_off', 'driver': 'driver_1'}
+
+Timeline Processing:
+Time 0: Pick up order_1 at A
+Time 0→5: Travel A to B (5 mins)
+Time 5: Pick up order_2 at B
+Time 5→13: Travel B to C (8 mins)
+Time 13: Drop off order_1 at C (total time for order_1: 13 mins)
+Time 13→19: Travel C to D (6 mins)
+Time 19: Drop off order_2 at D (total time for order_2: 19 - 5 = 14 mins)
+
+MULTIPLE DRIVERS SCENARIO:
+
+Actions for multiple drivers:
+[
+    {'location': 'A', 'order_no': 'order_3', 'action_type': 'pick_up', 'driver': 'driver_1'},
+    {'location': 'B', 'order_no': 'order_4', 'action_type': 'pick_up', 'driver': 'driver_2'},
+    {'location': 'A', 'action_type': 'travel', 'driver': 'driver_1'},
+    {'location': 'B', 'action_type': 'travel', 'driver': 'driver_2'},
+    {'location': 'C', 'order_no': 'order_3', 'action_type': 'drop_off', 'driver': 'driver_1'},
+    {'location': 'A', 'order_no': 'order_4', 'action_type': 'drop_off', 'driver': 'driver_2'}
+]
+
+Processing:
+- driver_1: picks up order_3 at A, travels to C, drops off order_3
+- driver_2: picks up order_4 at B, travels to A, drops off order_4
+
+EDGE CASES TO CONSIDER:
+
+1. Driver stays at same location (no travel time added)
+2. Multiple orders carried simultaneously
+3. Orders dropped off in different sequence than picked up
+4. Multiple drivers working independently
+5. Travel actions without corresponding location changes
+6. Missing pickup or dropoff actions
+
+OUTPUT FORMAT:
+The function should print results in order number sequence:
+"order_1 is delivered within 15 mins"
+"order_2 is delivered within 20 mins"
+
+ALGORITHM APPROACH:
+1. Group actions by driver to create individual timelines
+2. For each driver, process actions sequentially:
+   - Track current location and time
+   - Calculate travel time when location changes
+   - Record pickup times for orders
+   - Calculate delivery time when orders are dropped off
+3. Sort results by order number and print
+
+IMPLEMENTATION NOTES:
+- The timeline approach is more robust than trying to process all actions globally
+- Each driver operates independently with their own timeline
+- Travel time is only added when location actually changes
+- Orders can be carried simultaneously and dropped off in any order
 """
 
 def calculate_delivery_times(actions, travel_matrix, location_mapping):
     """
     Calculate and print delivery times for each order based on driver actions.
+    
+    This implementation uses a timeline-based approach where each driver's actions
+    are processed sequentially to track their movement and order handling.
     
     Args:
         actions: List of dictionaries with driver action records
@@ -27,139 +129,15 @@ def calculate_delivery_times(actions, travel_matrix, location_mapping):
     Returns:
         None (prints results)
     """
-    print("🚀 Starting delivery time calculation...")
-    print(f"📋 Processing {len(actions)} actions")
-    print(f"🗺️  Location mapping: {location_mapping}")
-    print("="*60)
-    
-    # Track order pickup and delivery times
-    order_times = {}  # order_no -> {'pickup_time': time, 'delivery_time': time}
-    
-    # Track driver state: current location and orders being carried
-    driver_state = {}  # driver -> {'location': loc, 'carrying_orders': set(), 'current_time': time}
-    
-    # Process each action in sequence
-    current_time = 0
-    
-    for i, action in enumerate(actions):
-        print(f"\n📍 Action {i+1}: {action}")
-        
-        driver = action['driver']
-        location = action['location']
-        action_type = action['action_type']
-        
-        # Initialize driver state if not exists
-        if driver not in driver_state:
-            print(f"🆕 Initializing new driver: {driver}")
-            driver_state[driver] = {
-                'location': location,
-                'carrying_orders': set(),
-                'current_time': 0
-            }
-            print(f"   Initial state: {driver_state[driver]}")
-        
-        print(f"🚗 Driver {driver} current state before action:")
-        print(f"   Location: {driver_state[driver]['location']}")
-        print(f"   Carrying orders: {driver_state[driver]['carrying_orders']}")
-        print(f"   Current time: {driver_state[driver]['current_time']} mins")
-        
-        # Calculate travel time if driver moved to a different location
-        if driver_state[driver]['location'] != location:
-            from_location = driver_state[driver]['location']
-            from_idx = location_mapping[from_location]
-            to_idx = location_mapping[location]
-            travel_time = travel_matrix[from_idx][to_idx]
-            
-            print(f"🛣️  TRAVEL DETECTED:")
-            print(f"   From: {from_location} (index {from_idx}) → To: {location} (index {to_idx})")
-            print(f"   Travel time: {travel_time} mins")
-            print(f"   Orders affected: {driver_state[driver]['carrying_orders']}")
-            
-            # Add travel time to all orders currently being carried by this driver
-            for order_no in driver_state[driver]['carrying_orders']:
-                if order_no in order_times:
-                    old_time = order_times[order_no]['total_time']
-                    order_times[order_no]['total_time'] += travel_time
-                    print(f"   📦 {order_no}: {old_time} + {travel_time} = {order_times[order_no]['total_time']} mins")
-            
-            # Update driver's current time and location
-            driver_state[driver]['current_time'] += travel_time
-            driver_state[driver]['location'] = location
-            print(f"   Updated driver time: {driver_state[driver]['current_time']} mins")
-        else:
-            print(f"🏠 No travel needed - driver already at {location}")
-        
-        # Handle different action types
-        if action_type == 'pick_up':
-            order_no = action['order_no']
-            print(f"📦 PICKUP: {order_no}")
-            # Start tracking this order
-            order_times[order_no] = {
-                'pickup_time': driver_state[driver]['current_time'],
-                'total_time': 0
-            }
-            driver_state[driver]['carrying_orders'].add(order_no)
-            print(f"   Order {order_no} picked up at time {driver_state[driver]['current_time']}")
-            print(f"   Driver now carrying: {driver_state[driver]['carrying_orders']}")
-            
-        elif action_type == 'drop_off':
-            order_no = action['order_no']
-            print(f"🎯 DROPOFF: {order_no}")
-            # Complete this order
-            if order_no in order_times:
-                order_times[order_no]['delivery_time'] = driver_state[driver]['current_time']
-                print(f"   Order {order_no} delivered at time {driver_state[driver]['current_time']}")
-                print(f"   Total delivery time: {order_times[order_no]['total_time']} mins")
-            driver_state[driver]['carrying_orders'].discard(order_no)
-            print(f"   Driver now carrying: {driver_state[driver]['carrying_orders']}")
-            
-        elif action_type == 'travel':
-            print(f"🚗 TRAVEL action (handled by location change logic above)")
-        
-        print(f"📊 Current order status:")
-        for order_no, times in order_times.items():
-            status = "✅ Delivered" if 'delivery_time' in times else "🚚 In transit"
-            print(f"   {order_no}: {status}, Total time so far: {times['total_time']} mins")
-        
-        print("-" * 40)
-    
-    print(f"\n🏁 FINAL RESULTS:")
-    print("="*60)
-    
-    # Sort orders by order number and print results
-    sorted_orders = sorted(order_times.keys())
-    
-    for order_no in sorted_orders:
-        total_time = order_times[order_no]['total_time']
-        print(f"📦 {order_no} is delivered within {total_time} mins")
-    
-    print("\n📈 DETAILED ORDER BREAKDOWN:")
-    for order_no in sorted_orders:
-        times = order_times[order_no]
-        pickup_time = times.get('pickup_time', 'N/A')
-        delivery_time = times.get('delivery_time', 'N/A')
-        total_time = times['total_time']
-        print(f"   {order_no}:")
-        print(f"     Pickup time: {pickup_time} mins")
-        print(f"     Delivery time: {delivery_time} mins")
-        print(f"     Total delivery duration: {total_time} mins")
-
-
-def calculate_delivery_times_alternative(actions, travel_matrix, location_mapping):
-    """
-    Alternative implementation using a more explicit timeline approach.
-    This version builds a complete timeline and then calculates delivery times.
-    """
-    # Build timeline of events for each driver
+    # Group actions by driver to create individual timelines
     driver_timelines = {}
-    
     for action in actions:
         driver = action['driver']
         if driver not in driver_timelines:
             driver_timelines[driver] = []
         driver_timelines[driver].append(action)
     
-    # Calculate delivery times for each driver's timeline
+    # Process each driver's timeline independently
     all_delivery_times = {}
     
     for driver, timeline in driver_timelines.items():
@@ -192,52 +170,196 @@ def calculate_delivery_times_alternative(actions, travel_matrix, location_mappin
                     all_delivery_times[order_no] = delivery_time
                     del carrying_orders[order_no]
     
-    # Sort and print results
+    # Print results in order number sequence
     sorted_orders = sorted(all_delivery_times.keys())
     for order_no in sorted_orders:
         delivery_time = all_delivery_times[order_no]
         print(f"{order_no} is delivered within {delivery_time} mins")
 
+def component_explanation():
+    """
+    Explains the key components of the delivery time calculation problem.
+    """
+    print("🔍 COMPONENT BREAKDOWN:")
+    print("="*50)
+    
+    print("\n1. 📋 ACTIONS LIST:")
+    print("   - Sequence of driver activities")
+    print("   - Each action has: location, action_type, driver")
+    print("   - pickup/dropoff actions also have: order_no")
+    print("   - Actions are processed in chronological order")
+    
+    print("\n2. 🗺️  TRAVEL MATRIX:")
+    print("   - 2D grid of travel times between locations")
+    print("   - Matrix[i][j] = time from location i to location j")
+    print("   - Symmetric matrix (usually)")
+    print("   - Diagonal is 0 (no time to travel to same location)")
+    
+    print("\n3. 🏷️  LOCATION MAPPING:")
+    print("   - Converts location names to matrix indices")
+    print("   - Example: {'A': 0, 'B': 1, 'C': 2}")
+    print("   - Enables lookup of travel times")
+    
+    print("\n4. ⏱️  TIME CALCULATION:")
+    print("   - Track each driver's current time and location")
+    print("   - Add travel time when location changes")
+    print("   - Record pickup time for each order")
+    print("   - Calculate delivery time = dropoff_time - pickup_time")
 
-# Test cases
+def interview_explanation():
+    """
+    Provides talking points for explaining the solution in an interview.
+    """
+    print("\n🎯 INTERVIEW TALKING POINTS:")
+    print("="*50)
+    
+    print("\n💭 PROBLEM UNDERSTANDING:")
+    print("   'This is a logistics simulation problem where we need to track")
+    print("    multiple drivers handling multiple orders with realistic travel times.'")
+    
+    print("\n🧠 APPROACH REASONING:")
+    print("   'I'll use a timeline-based approach because:'")
+    print("   - Each driver operates independently")
+    print("   - Actions must be processed in sequence")
+    print("   - Need to track state (location, time, carried orders)")
+    print("   - Travel time only applies when location actually changes'")
+    
+    print("\n⚡ ALGORITHM STEPS:")
+    print("   1. Group actions by driver (separate timelines)")
+    print("   2. For each driver, process actions sequentially:")
+    print("      - Track current location and time")
+    print("      - Add travel time when location changes")
+    print("      - Record pickup times")
+    print("      - Calculate delivery times at dropoff")
+    print("   3. Sort and output results")
+    
+    print("\n🔧 EDGE CASES:")
+    print("   - Multiple orders carried simultaneously")
+    print("   - Orders dropped in different sequence than picked up")
+    print("   - Multiple drivers working independently")
+    print("   - Travel actions that don't change location")
+
+def demonstrate_timeline_benefits():
+    """
+    Shows why the timeline approach is better than alternatives.
+    """
+    print("\n🏆 WHY TIMELINE APPROACH WINS:")
+    print("="*50)
+    
+    print("\n❌ NAIVE APPROACH PROBLEMS:")
+    print("   - Processing all actions globally loses driver context")
+    print("   - Hard to track which driver is where at what time")
+    print("   - Difficult to handle multiple orders per driver")
+    print("   - Complex state management across drivers")
+    
+    print("\n✅ TIMELINE APPROACH BENEFITS:")
+    print("   - Each driver has independent timeline")
+    print("   - Clear state tracking (location, time, orders)")
+    print("   - Natural handling of multiple orders")
+    print("   - Easy to debug and verify")
+    print("   - Scales well with more drivers")
+    
+    print("\n🎯 REAL-WORLD APPLICABILITY:")
+    print("   - Models actual delivery logistics")
+    print("   - Can extend to handle driver breaks, traffic, etc.")
+    print("   - Supports optimization algorithms")
+    print("   - Easy to add features like order priorities")
+
+def interview_cheat_sheet():
+    """
+    Quick reference for interview discussion.
+    """
+    print("\n📝 INTERVIEW CHEAT SHEET:")
+    print("="*50)
+    
+    print("\n🔑 KEY INSIGHTS:")
+    print("   • Timeline per driver = independent state tracking")
+    print("   • Travel time only when location changes")
+    print("   • Delivery time = dropoff_time - pickup_time")
+    print("   • Sort output by order number")
+    
+    print("\n⚠️  GOTCHAS:")
+    print("   • Travel actions don't always mean location change")
+    print("   • Multiple orders can be carried simultaneously")
+    print("   • Order dropoff sequence may differ from pickup sequence")
+    
+    print("\n🚀 FOLLOW-UP QUESTIONS TO EXPECT:")
+    print("   • How would you optimize driver routes?")
+    print("   • What if drivers have different speeds?")
+    print("   • How to handle real-time traffic updates?")
+    print("   • What about order priorities or time windows?")
+    
+    print("\n💡 OPTIMIZATION IDEAS:")
+    print("   • Precompute shortest paths (Floyd-Warshall)")
+    print("   • Use priority queues for order scheduling")
+    print("   • Implement route optimization algorithms")
+    print("   • Add caching for repeated calculations")
+
+# Test functions for demonstration
 def test_simple_example():
-    """Simple test to understand the core mechanics step by step."""
+    """Simple test case for basic understanding."""
+    print("\n🧪 SIMPLE TEST CASE:")
+    print("="*30)
     
-    print("🔍 SIMPLE EXAMPLE TO UNDERSTAND THE MECHANICS")
-    print("="*70)
-    
-    # Very simple scenario: One driver, one order
-    simple_actions = [
+    actions = [
         {'location': 'A', 'order_no': 'order_1', 'action_type': 'pick_up', 'driver': 'driver_1'},
         {'location': 'A', 'action_type': 'travel', 'driver': 'driver_1'},
         {'location': 'B', 'order_no': 'order_1', 'action_type': 'drop_off', 'driver': 'driver_1'}
     ]
     
     travel_matrix = [
-        [0, 10],  # From A to [A, B] 
-        [10, 0]   # From B to [A, B]
+        [0, 10],  # A to [A, B]
+        [10, 0]   # B to [A, B]
     ]
     
     location_mapping = {'A': 0, 'B': 1}
     
-    print("📝 Scenario: Driver picks up order_1 at A, travels to B, drops off order_1")
-    print("🗺️  Travel time A→B: 10 mins")
-    print()
-    
-    calculate_delivery_times(simple_actions, travel_matrix, location_mapping)
-    
-    print("\n" + "="*70)
-    print("💡 KEY INSIGHT: The order accumulates travel time while being carried!")
-    print("   - Order picked up at A (time 0)")
-    print("   - Driver travels A→B (10 mins) while carrying order")
-    print("   - Order delivered at B (total delivery time: 10 mins)")
+    print("Actions:", actions)
+    print("Travel matrix:", travel_matrix)
+    print("Expected: order_1 delivered in 10 mins")
+    print("\nResult:")
+    calculate_delivery_times(actions, travel_matrix, location_mapping)
 
+def explain_complex_scenario():
+    """Explains the complex multi-order scenario step by step."""
+    print("\n🎭 COMPLEX SCENARIO EXPLANATION:")
+    print("="*50)
+    
+    print("📋 Scenario: Driver picks up 2 orders, delivers them")
+    print("🗺️  Route: A → B → C → D")
+    print("📦 Orders: order_1 (A→C), order_2 (B→D)")
+    
+    print("\n⏰ Timeline:")
+    print("Time 0:  At A, pickup order_1")
+    print("Time 5:  Travel A→B, at B, pickup order_2")
+    print("Time 13: Travel B→C, at C, dropoff order_1 (13-0=13 mins)")
+    print("Time 19: Travel C→D, at D, dropoff order_2 (19-5=14 mins)")
+    
+    print("\n🎯 Key Insights:")
+    print("• order_1 carried for 13 minutes total")
+    print("• order_2 carried for 14 minutes total")
+    print("• Driver can carry multiple orders simultaneously")
+    print("• Each order's time = dropoff_time - pickup_time")
 
-def test_calculate_delivery_times():
-    """Test the delivery time calculation with provided examples."""
+# Example usage and test cases
+if __name__ == "__main__":
+    # Run component explanations
+    component_explanation()
+    interview_explanation()
+    demonstrate_timeline_benefits()
+    interview_cheat_sheet()
     
-    print("=== Testing Main Implementation ===")
+    # Run simple test
+    test_simple_example()
     
+    # Explain complex scenario
+    explain_complex_scenario()
+    
+    print("\n" + "="*60)
+    print("🚀 MAIN TEST CASES:")
+    print("="*60)
+    
+    # Original test case
     actions = [
         {'location': 'A', 'order_no': 'order_1', 'action_type': 'pick_up', 'driver': 'driver_1'},
         {'location': 'A', 'action_type': 'travel', 'driver': 'driver_1'},
@@ -257,10 +379,10 @@ def test_calculate_delivery_times():
     
     location_mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
     
-    print("Test case 1 - Single driver with multiple orders:")
+    print("\n📋 Test case 1 - Single driver, multiple orders:")
     calculate_delivery_times(actions, travel_matrix, location_mapping)
     
-    # Additional test case with multiple drivers
+    # Multiple drivers test case
     actions2 = [
         {'location': 'A', 'order_no': 'order_3', 'action_type': 'pick_up', 'driver': 'driver_1'},
         {'location': 'B', 'order_no': 'order_4', 'action_type': 'pick_up', 'driver': 'driver_2'},
@@ -270,355 +392,5 @@ def test_calculate_delivery_times():
         {'location': 'A', 'order_no': 'order_4', 'action_type': 'drop_off', 'driver': 'driver_2'}
     ]
     
-    print("\nTest case 2 - Multiple drivers:")
-    calculate_delivery_times(actions2, travel_matrix, location_mapping)
-    
-    print("\n=== Testing Alternative Implementation ===")
-    print("Test case 1 - Alternative approach:")
-    calculate_delivery_times_alternative(actions, travel_matrix, location_mapping)
-
-
-def analyze_solution():
-    """
-    Analysis of the solution approach:
-    
-    1. **State Tracking**: We maintain driver state including current location,
-       orders being carried, and accumulated time.
-    
-    2. **Travel Time Calculation**: When a driver moves between locations,
-       we calculate travel time using the matrix and add it to all orders
-       currently being carried.
-    
-    3. **Order Lifecycle**: Track pickup and dropoff events, calculating
-       total delivery time as the difference.
-    
-    4. **Multiple Drivers**: Handle each driver independently with their
-       own state and timeline.
-    
-    5. **Edge Cases**: Handle drivers starting at different locations,
-       orders picked up and dropped off by the same driver, and travel
-       actions without order numbers.
-    
-    **Time Complexity**: O(n + m log m) where n = number of actions, 
-    m = number of unique orders (for sorting output)
-    
-    **Space Complexity**: O(m + d) where m = number of orders, 
-    d = number of drivers
-    
-    **Key Insights**:
-    - Travel time accumulates for ALL orders currently being carried
-    - Order delivery time = total accumulated travel time from pickup to dropoff
-    - Driver state must be maintained independently for concurrent operations
-    """
-    pass
-
-
-def component_explanation():
-    """
-    DETAILED COMPONENT EXPLANATION based on the debug output:
-    
-    🔧 **CORE COMPONENTS BREAKDOWN**:
-    
-    1. **Driver State Tracking** (`driver_state` dictionary):
-       - `location`: Current driver location
-       - `carrying_orders`: Set of orders currently being carried
-       - `current_time`: Driver's accumulated time (for timeline tracking)
-    
-    2. **Order Time Tracking** (`order_times` dictionary):
-       - `pickup_time`: When order was picked up
-       - `delivery_time`: When order was delivered  
-       - `total_time`: Accumulated travel time while being carried
-    
-    3. **Travel Time Calculation**:
-       - Detects when driver moves between locations
-       - Uses travel_matrix[from_idx][to_idx] to get travel time
-       - Adds travel time to ALL orders currently being carried
-    
-    4. **Action Processing**:
-       - `pick_up`: Start tracking order, add to carrying_orders set
-       - `drop_off`: Stop tracking order, remove from carrying_orders set
-       - `travel`: Handled implicitly by location change detection
-    
-    🎯 **KEY INSIGHT FROM DEBUG OUTPUT**:
-    
-    In the complex scenario, we see:
-    - Action 3: order_1 accumulates 5 mins (A→B travel)
-    - Action 5: BOTH order_1 and order_2 accumulate 8 mins (B→C travel)
-    - Action 7: order_2 accumulates 6 mins (C→D travel)
-    
-    Final results:
-    - order_1: 5 + 8 = 13 mins total
-    - order_2: 8 + 6 = 14 mins total
-    
-    This shows how orders accumulate travel time ONLY while being carried!
-    
-    🚀 **ALGORITHM FLOW**:
-    
-    For each action:
-    1. Check if driver moved → Calculate travel time
-    2. Add travel time to all carried orders
-    3. Update driver location and time
-    4. Handle pickup/dropoff action
-    5. Update order and driver state
-    
-    The beauty is in the simplicity: orders accumulate time naturally
-    as drivers move while carrying them!
-    """
-    print(component_explanation.__doc__)
-
-
-def explain_complex_scenario():
-    """Explain the complex scenario with multiple orders step by step."""
-    
-    print("\n🧠 UNDERSTANDING THE COMPLEX MULTI-ORDER SCENARIO")
-    print("="*70)
-    
-    actions = [
-        {'location': 'A', 'order_no': 'order_1', 'action_type': 'pick_up', 'driver': 'driver_1'},
-        {'location': 'A', 'action_type': 'travel', 'driver': 'driver_1'},
-        {'location': 'B', 'order_no': 'order_2', 'action_type': 'pick_up', 'driver': 'driver_1'},
-        {'location': 'B', 'action_type': 'travel', 'driver': 'driver_1'},
-        {'location': 'C', 'order_no': 'order_1', 'action_type': 'drop_off', 'driver': 'driver_1'},
-        {'location': 'C', 'action_type': 'travel', 'driver': 'driver_1'},
-        {'location': 'D', 'order_no': 'order_2', 'action_type': 'drop_off', 'driver': 'driver_1'}
-    ]
-    
-    print("📋 SCENARIO BREAKDOWN:")
-    print("1. Pick up order_1 at A")
-    print("2. Travel A→B (order_1 accumulates 5 mins)")
-    print("3. Pick up order_2 at B (now carrying both orders)")
-    print("4. Travel B→C (both order_1 and order_2 accumulate 8 mins)")
-    print("5. Drop off order_1 at C (total: 5+8=13 mins)")
-    print("6. Travel C→D (order_2 accumulates 6 mins)")
-    print("7. Drop off order_2 at D (total: 8+6=14 mins)")
-    print()
-    
-    print("🔑 KEY CONCEPT: When multiple orders are carried simultaneously,")
-    print("   ALL carried orders accumulate the same travel time!")
-    print()
-
-
-def interview_explanation():
-    """
-    🎯 **INTERVIEW TALKING POINTS: Comparing Two Approaches**
-    
-    ==========================================
-    📊 **APPROACH 1: Real-time State Tracking**
-    ==========================================
-    
-    **How it works:**
-    - Processes actions sequentially in a single pass
-    - Maintains global driver state across all actions
-    - Updates order times immediately as travel happens
-    - Accumulates time for all carried orders on each move
-    
-    **Pros:**
-    ✅ Memory efficient - O(d + m) space
-    ✅ Single pass through data - O(n) time
-    ✅ Real-time processing capability
-    ✅ Handles streaming data well
-    
-    **Cons:**
-    ❌ Complex state management across drivers
-    ❌ Harder to debug intermediate states
-    ❌ Tightly coupled logic (travel + order tracking)
-    ❌ Less intuitive mental model
-    
-    ==========================================
-    📈 **APPROACH 2: Timeline-based Processing**
-    ==========================================
-    
-    **How it works:**
-    - Groups actions by driver first
-    - Processes each driver's timeline independently
-    - Calculates delivery times per driver, then aggregates
-    - Clear separation of concerns
-    
-    **Pros:**
-    ✅ **Clearer mental model** - matches real-world driver behavior
-    ✅ **Easier to debug** - can inspect each driver's timeline
-    ✅ **Better separation of concerns** - driver logic isolated
-    ✅ **More maintainable** - easier to modify driver-specific logic
-    ✅ **Parallel processing potential** - drivers are independent
-    ✅ **Easier testing** - can test individual driver scenarios
-    
-    **Cons:**
-    ❌ Slightly higher memory usage - O(n + d + m)
-    ❌ Two-pass algorithm (group + process)
-    
-    ==========================================
-    🗣️ **HOW TO JUSTIFY TIMELINE APPROACH**
-    ==========================================
-    
-    **Opening Statement:**
-    "I prefer the timeline approach because it better models the real-world 
-    problem and provides clearer separation of concerns."
-    
-    **Key Justification Points:**
-    
-    1. **Mental Model Clarity:**
-       "In reality, each driver operates independently. The timeline approach 
-       mirrors this by processing each driver's actions as a separate sequence,
-       making the code more intuitive to understand and maintain."
-    
-    2. **Debugging & Maintenance:**
-       "When debugging delivery time issues, you can isolate and examine 
-       individual driver timelines. This makes it much easier to trace 
-       problems and validate logic."
-    
-    3. **Scalability Considerations:**
-       "The timeline approach naturally supports parallel processing - each 
-       driver's timeline can be processed independently, which is valuable 
-       for large-scale systems."
-    
-    4. **Code Organization:**
-       "The separation allows for driver-specific optimizations or business 
-       rules without affecting the core algorithm structure."
-    
-    ==========================================
-    🤔 **HANDLING FOLLOW-UP QUESTIONS**
-    ==========================================
-    
-    **Q: "But isn't the real-time approach more efficient?"**
-    A: "While it uses slightly less memory, the difference is minimal in practice.
-       The timeline approach's benefits in maintainability and debuggability 
-       often outweigh the small memory overhead, especially in production systems
-       where code clarity is crucial."
-    
-    **Q: "What if we need real-time processing?"**
-    A: "Great question! For real-time scenarios, we could adapt the timeline 
-       approach by processing driver timelines incrementally as new actions 
-       arrive, maintaining the same clear structure while supporting streaming."
-    
-    **Q: "How would you handle very large datasets?"**
-    A: "The timeline approach actually scales better because:
-       1. We can process drivers in parallel
-       2. We can implement driver-specific optimizations
-       3. Memory usage per driver is bounded
-       4. We can even persist/cache individual driver timelines"
-    
-    **Q: "What about memory usage with many drivers?"**
-    A: "The memory overhead is O(n) for storing actions per driver, which is 
-       the same data we're processing anyway. The benefit of clearer code 
-       structure typically justifies this small overhead."
-    
-    ==========================================
-    💡 **TECHNICAL DEPTH DEMONSTRATION**
-    ==========================================
-    
-    **Show Understanding of Trade-offs:**
-    "I chose the timeline approach understanding there's a memory trade-off, 
-    but I believe the benefits in code maintainability, debuggability, and 
-    scalability make it the better choice for a production system."
-    
-    **Demonstrate Systems Thinking:**
-    "In a real delivery system, you'd likely want to:
-    - Audit individual driver performance
-    - Handle driver-specific business rules
-    - Support parallel processing for scale
-    The timeline approach naturally supports all of these requirements."
-    
-    **Show Flexibility:**
-    "That said, if memory constraints were critical or we needed true 
-    streaming processing, I could implement the real-time approach. The 
-    choice depends on the specific system requirements."
-    """
-    print(interview_explanation.__doc__)
-
-
-def demonstrate_timeline_benefits():
-    """
-    🔬 **PRACTICAL DEMONSTRATION: Why Timeline Approach is Better**
-    
-    Let me show you specific scenarios where timeline approach shines:
-    """
-    
-    print("🔬 PRACTICAL DEMONSTRATION: Timeline Approach Benefits")
-    print("="*60)
-    
-    print("\n1. 🐛 **DEBUGGING SCENARIO:**")
-    print("   Problem: 'Driver_1's order_5 has wrong delivery time'")
-    print("   Timeline approach: Extract driver_1's timeline, trace step-by-step")
-    print("   Real-time approach: Must replay entire action sequence")
-    
-    print("\n2. 🔧 **MAINTENANCE SCENARIO:**")
-    print("   Requirement: 'Add driver break time handling'")
-    print("   Timeline approach: Modify individual driver processing logic")
-    print("   Real-time approach: Modify global state management (more complex)")
-    
-    print("\n3. 📊 **ANALYTICS SCENARIO:**")
-    print("   Need: 'Generate per-driver performance reports'")
-    print("   Timeline approach: Driver data already grouped and accessible")
-    print("   Real-time approach: Must re-process or maintain separate tracking")
-    
-    print("\n4. ⚡ **SCALABILITY SCENARIO:**")
-    print("   Challenge: 'Process 10,000 drivers with 1M actions'")
-    print("   Timeline approach: Process drivers in parallel, natural partitioning")
-    print("   Real-time approach: Sequential processing, harder to parallelize")
-    
-    print("\n5. 🧪 **TESTING SCENARIO:**")
-    print("   Need: 'Unit test driver behavior with complex pickup/dropoff patterns'")
-    print("   Timeline approach: Create isolated driver timeline, test independently")
-    print("   Real-time approach: Must create full action sequence with other drivers")
-
-
-def interview_cheat_sheet():
-    """
-    📋 **INTERVIEW CHEAT SHEET: Timeline Approach Defense**
-    
-    🎯 **OPENING STATEMENT:**
-    "I implemented both approaches, but I prefer the timeline method because 
-    it better models real-world driver behavior and provides clearer code organization."
-    
-    🔑 **KEY TALKING POINTS:**
-    
-    1. **MENTAL MODEL** 📚
-       "Each driver operates independently in reality → code should reflect this"
-    
-    2. **DEBUGGING** 🐛  
-       "Can isolate individual driver issues without replaying entire sequence"
-    
-    3. **MAINTAINABILITY** 🔧
-       "Driver-specific features (breaks, routes) easier to add"
-    
-    4. **SCALABILITY** ⚡
-       "Natural parallel processing - each driver timeline independent"
-    
-    5. **TESTING** 🧪
-       "Can unit test individual driver scenarios in isolation"
-    
-    ⚖️ **TRADE-OFF ACKNOWLEDGMENT:**
-    "Yes, it uses slightly more memory (O(n) vs O(d+m)), but the benefits 
-    in code clarity and maintainability justify this in production systems."
-    
-    🛡️ **COUNTER-ARGUMENTS:**
-    
-    Memory concerns? → "Overhead is minimal, same data we're processing anyway"
-    Real-time needs? → "Can adapt timeline approach for incremental processing"
-    Efficiency? → "Timeline approach enables parallel processing for better throughput"
-    
-    💪 **CONFIDENCE CLOSER:**
-    "Both approaches work, but timeline approach sets us up better for 
-    real-world requirements like debugging, analytics, and scaling."
-    """
-    print(interview_cheat_sheet.__doc__)
-
-
-if __name__ == "__main__":
-    test_simple_example()
-    explain_complex_scenario()
-    test_calculate_delivery_times()
-    print("\n" + "="*50)
-    print("Solution Analysis:")
-    analyze_solution()
-    print("\n" + "="*50)
-    print("Component Explanation:")
-    component_explanation()
-    print("\n" + "="*50)
-    print("Interview Explanation:")
-    interview_explanation()
-    print("\n" + "="*50)
-    demonstrate_timeline_benefits()
-    print("\n" + "="*50)
-    print("INTERVIEW CHEAT SHEET:")
-    interview_cheat_sheet() 
+    print("\n📋 Test case 2 - Multiple drivers:")
+    calculate_delivery_times(actions2, travel_matrix, location_mapping) 

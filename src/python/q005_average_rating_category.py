@@ -67,40 +67,37 @@ def calculate_average_ratings(movie_data):
         A dictionary mapping category (str) to average rating (float).
     """
 
-    category_sum={}
-    category_count={}
-
+    if not movie_data:
+        return {}
+    
+    total = {}
+    count = {}
     for movie in movie_data:
 
-        if 'category' not in movie or 'rating' not in movie:
+        if not all(key in movie for key in ['title','category','rating']):
             continue
-        
         category = movie['category']
         rating = movie['rating']
-        if isinstance(rating,str):
+        if not isinstance(rating,float):
             try:
                 rating = float(rating)
             except:
                 continue
+
+        if category not in total:
+            total[category]=rating
+            count[category]=1
         
-        if category not in category_sum:
-            category_sum[category] = rating
-            category_count[category]=1
         else:
-            category_sum[category]+=rating
-            category_count[category]+=1
+            total[category]+=rating
+            count[category]+=1
     
     result = {}
 
-    for category in category_sum:
+    for c, total_rating in total.items():
+        result[c] = total[c]/count[c]
 
-        result[category]= category_sum[category]/category_count[category]
-    
     return result
-
-        
-
-
 
 
 # Test cases

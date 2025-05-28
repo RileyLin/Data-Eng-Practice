@@ -5,55 +5,62 @@ Calculate the percentage of content items (e.g., posts, videos) created today
 that received at least one 'reaction' event but zero 'comment' events on the same day.
 */
 
--- Assuming 'today' means the current calendar date.
--- Table names: `posts` and `engagement_events`
--- `posts` has `post_id`, `creation_timestamp`
--- `engagement_events` has `post_id`, `event_type` ('reaction', 'comment'), `event_timestamp`
+-- Assuming 'today' means the current calendar date for the 'created_timestamp' and 'event_timestamp'.
+-- Table names are based on scenario_2_short_video_setup.sql:
+-- dim_posts_shortvideo (post_key, created_timestamp)
+-- fact_engagement_events_shortvideo (post_key, engagement_type_key, event_timestamp)
+-- dim_engagement_types_shortvideo (engagement_type_key, engagement_type_name)
 
 WITH PostsCreatedToday AS (
     SELECT
-        p.post_id
+        p.post_key,
+        DATE(p.created_timestamp) AS creation_date -- Extract date part for comparison
     FROM
-        posts p
+        dim_posts_shortvideo p
     WHERE
-        DATE(p.creation_timestamp) = CURRENT_DATE
+        DATE(p.created_timestamp) = DATE('now') -- Filter for posts created "today"
+        -- For testing with fixed data, replace DATE('now') with a specific date string e.g., '2023-03-17'
 ),
 ReactionsToday AS (
-    SELECT DISTINCT
-        ee.post_id
+    SELECT DISTINCT -- A post only needs one reaction to count
+        fee.post_key
     FROM
-        engagement_events ee
+        fact_engagement_events_shortvideo fee
     JOIN
-        PostsCreatedToday pct ON ee.post_id = pct.post_id
+        PostsCreatedToday pct ON fee.post_key = pct.post_key -- Join with posts created today
+    JOIN
+        dim_engagement_types_shortvideo det ON fee.engagement_type_key = det.engagement_type_key
     WHERE
-        ee.event_type = 'reaction'
-        AND DATE(ee.event_timestamp) = CURRENT_DATE
+        det.engagement_type_name = 'reaction' -- Filter for 'reaction' type events
+        AND DATE(fee.event_timestamp) = pct.creation_date -- Ensure reaction happened on the same day as creation
 ),
 CommentsToday AS (
-    SELECT DISTINCT
-        ee.post_id
+    SELECT DISTINCT -- A post only needs one comment to be excluded
+        fee.post_key
     FROM
-        engagement_events ee
+        fact_engagement_events_shortvideo fee
     JOIN
-        PostsCreatedToday pct ON ee.post_id = pct.post_id
+        PostsCreatedToday pct ON fee.post_key = pct.post_key -- Join with posts created today
+    JOIN
+        dim_engagement_types_shortvideo det ON fee.engagement_type_key = det.engagement_type_key
     WHERE
-        ee.event_type = 'comment'
-        AND DATE(ee.event_timestamp) = CURRENT_DATE
+        det.engagement_type_name = 'comment' -- Filter for 'comment' type events
+        AND DATE(fee.event_timestamp) = pct.creation_date -- Ensure comment happened on the same day as creation
 ),
 EligiblePosts AS (
-    -- Posts created today with at least one reaction today and no comments today
+    -- Posts created today that have at least one reaction today AND no comments today
     SELECT
-        rt.post_id
+        rt.post_key
     FROM
         ReactionsToday rt
     LEFT JOIN
-        CommentsToday ct ON rt.post_id = ct.post_id
+        CommentsToday ct ON rt.post_key = ct.post_key
     WHERE
-        ct.post_id IS NULL
+        ct.post_key IS NULL -- This ensures no comments were found for the post that had a reaction
 )
 SELECT
     CASE
-        WHEN (SELECT COUNT(*) FROM PostsCreatedToday) = 0 THEN 0.0
+        WHEN (SELECT COUNT(*) FROM PostsCreatedToday) = 0 THEN 0.0 -- Avoid division by zero if no posts created today
         ELSE (
             (SELECT COUNT(*) FROM EligiblePosts) * 100.0 / 
             (SELECT COUNT(*) FROM PostsCreatedToday)
@@ -64,95 +71,23 @@ SELECT
 Explanation:
 
 1.  `PostsCreatedToday` CTE:
-    *   Selects `post_id` for all posts created on the `CURRENT_DATE`.
+    *   Selects `post_key` for all posts created on the `CURRENT_DATE` (using `DATE('now')` for SQLite, adjust for other DBs).
+    *   Also extracts `creation_date` for accurate same-day comparison with events.
 
 2.  `ReactionsToday` CTE:
-    *   Finds distinct `post_id`s from `PostsCreatedToday` that received at least one 'reaction' event also on `CURRENT_DATE`.
+    *   Finds distinct `post_key`s from `PostsCreatedToday` that received at least one 'reaction' event (based on `dim_engagement_types_shortvideo.engagement_type_name`) on their `creation_date`.
 
 3.  `CommentsToday` CTE:
-    *   Finds distinct `post_id`s from `PostsCreatedToday` that received at least one 'comment' event also on `CURRENT_DATE`.
+    *   Finds distinct `post_key`s from `PostsCreatedToday` that received at least one 'comment' event on their `creation_date`.
 
 4.  `EligiblePosts` CTE:
-    *   Selects `post_id`s from `ReactionsToday` (posts with reactions today).
+    *   Selects `post_key`s that are present in `ReactionsToday` (had a reaction on creation day).
     *   It then `LEFT JOIN`s with `CommentsToday`.
-    *   The `WHERE ct.post_id IS NULL` condition ensures that only posts with reactions but no comments today are kept.
+    *   The `WHERE ct.post_key IS NULL` condition filters to keep only those posts that had reactions but did NOT have comments on their creation day.
 
 5.  Final `SELECT` Statement:
     *   Calculates the percentage: (`COUNT(EligiblePosts)` * 100.0) / `COUNT(PostsCreatedToday)`.
-    *   A `CASE` statement handles the scenario where no posts were created today to prevent division by zero, returning 0.0 in such cases.
+    *   A `CASE` statement handles the scenario where no posts were created today, returning 0.0 to prevent division by zero.
 
-Schema Assumptions:
-posts:
-- post_id (PK)
-- user_id (FK, creator)
-- creation_timestamp
-
-engagement_events:
-- event_id (PK)
-- post_id (FK -> posts)
-- user_id (FK, user who engaged)
-- event_type ('reaction', 'comment', 'like', etc.)
-- event_timestamp
-
-Example DDL & DML for testing:
-
-DROP TABLE IF EXISTS engagement_events;
-DROP TABLE IF EXISTS posts;
-
-CREATE TABLE posts (
-    post_id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    creation_timestamp TIMESTAMP
-);
-
-CREATE TABLE engagement_events (
-    event_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    post_id INTEGER,
-    user_id INTEGER,
-    event_type TEXT,
-    event_timestamp TIMESTAMP,
-    FOREIGN KEY (post_id) REFERENCES posts(post_id)
-);
-
--- Assuming CURRENT_DATE is '2023-03-17' for this sample data
-INSERT INTO posts (post_id, user_id, creation_timestamp) VALUES
-(1, 101, '2023-03-17 08:00:00'), -- P1: Created today
-(2, 102, '2023-03-17 09:00:00'), -- P2: Created today
-(3, 103, '2023-03-17 10:00:00'), -- P3: Created today
-(4, 104, '2023-03-17 11:00:00'), -- P4: Created today
-(5, 105, '2023-03-16 12:00:00'); -- P5: Created yesterday
-
-INSERT INTO engagement_events (post_id, user_id, event_type, event_timestamp) VALUES
--- P1: Reaction today, Comment today
-(1, 201, 'reaction', '2023-03-17 10:00:00'),
-(1, 202, 'comment', '2023-03-17 11:00:00'),
--- P2: Reaction today, No comment today
-(2, 203, 'reaction', '2023-03-17 12:00:00'),
--- P3: No reaction today, Comment today
-(3, 204, 'comment', '2023-03-17 13:00:00'),
--- P4: Reaction today, Comment on a different day (counts as no comment today)
-(4, 205, 'reaction', '2023-03-17 14:00:00'),
-(4, 206, 'comment', '2023-03-18 10:00:00'),
--- P5 (created yesterday): Reaction today (not relevant as post not created today)
-(5, 207, 'reaction', '2023-03-17 15:00:00');
-
--- Analysis for CURRENT_DATE = '2023-03-17':
--- PostsCreatedToday: P1, P2, P3, P4 (Count = 4)
--- ReactionsToday for these posts: P1, P2, P4
--- CommentsToday for these posts: P1, P3
-
--- EligiblePosts (Reaction today AND NO Comment today):
--- P1: Reaction today, Comment today. -> No
--- P2: Reaction today, No Comment today. -> Yes (Eligible)
--- P3: No Reaction today. -> No (Not in ReactionsToday)
--- P4: Reaction today, No Comment today (comment is for tomorrow). -> Yes (Eligible)
-
--- Count(EligiblePosts) = 2 (P2, P4)
--- Count(PostsCreatedToday) = 4
--- Percentage = (2 / 4) * 100.0 = 50.0
-
--- Expected Output:
--- percentage_posts_reaction_no_comment
--- --------------------------------------
--- 50.0
+This query structure clearly separates the logic for identifying posts created today, posts with reactions, posts with comments, and then combines these to find the eligible posts for the percentage calculation.
 */ 

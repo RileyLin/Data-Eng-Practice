@@ -119,7 +119,7 @@ INSERT INTO user_cumulative_snapshot (user_id, total_view_time_seconds, last_upd
 SELECT
     delta.user_id,
     delta.daily_total_view_time,
-    (CURRENT_DATE - INTERVAL '1 day') AS processing_date
+    (CURRENT_DATE - INTERVAL '1 day') AS last_updated_date -- Corrected alias to match column name
 FROM
     DailyUserViewSummary delta
 ON CONFLICT (user_id) DO UPDATE SET

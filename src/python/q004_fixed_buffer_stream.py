@@ -105,19 +105,21 @@ def process_fixed_buffer_stream(event_item, buffer, buffer_size, totals_engageme
     that will be updated in-place (e.g., a list with a single element: [0], [0.0])
     """
     
-    if len(buffer)>=buffer_size:
-        oldest_item = buffer.pop(0)
+    if len(buffer)<buffer_size:
+        buffer.append(event_item)
 
-        if oldest_item['user_id'] not in test_users:
-            if oldest_item['event_type']=='view' and 'view_duration_ms' in oldest_item:
+    else:
+        old_item = buffer.pop(0)
 
-                view_seconds = oldest_item['view_duration_ms']/1000.0
-                totals_view_seconds[0]+=view_seconds
-            elif oldest_item['event_type'] in ['like','comment','share']:
+        user_id = old_item['user_id']
+
+        if user_id not in test_users:
+            if old_item['event_type']=='view':
+                totals_view_seconds[0]+=old_item['view_duration_ms']/1000
+            else: 
                 totals_engagement[0]+=1
-    
-    print(f"Engagement count: {totals_engagement}")
-    buffer.append(event_item)
+        
+        buffer.append(event_item)
 
 def flush_fixed_buffer(buffer, totals_engagement, totals_view_seconds, test_users):
     """
@@ -129,25 +131,17 @@ def flush_fixed_buffer(buffer, totals_engagement, totals_view_seconds, test_user
         totals_view_seconds (float): Running total of view duration in seconds (passed by reference)
         test_users (set): Set of test user IDs to exclude from aggregation
     """
+    if not buffer: 
+        return
+    for event in buffer: 
+        user_id = event['user_id']
+        if user_id not in test_users:
+            if event['event_type']=='view':
+                totals_view_seconds[0]+=event['view_duration_ms']/1000
+            else: 
+                totals_engagement[0]+=1
     
-    buffer_copy = buffer.copy()
-
-    for item in buffer_copy:
-        buffer.remove(item)
-
-        if item['user_id'] in test_users:
-            continue
-        
-        if item['event_type']=='view' and 'view_duration_ms' in item:
-
-            view_seconds = item['view_duration_ms']/1000.0
-
-            totals_view_seconds[0] +=view_seconds
-        
-        elif item['event_type'] in ['like','comment','share']:
-            totals_engagement[0] +=1
-        
-
+    buffer.clear()
 
 
 # Test cases

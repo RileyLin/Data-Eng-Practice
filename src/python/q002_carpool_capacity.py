@@ -85,24 +85,26 @@ def can_vehicle_complete_rides_with_capacity(ride_segments, max_capacity):
     if not ride_segments or max_capacity<=0:
         return False
     
-    event =[]
-    
-    for ride in ride_segments:
-        event.append((ride[0],ride[2],"pickup"))
-        event.append((ride[1],ride[2],"dropoff"))
+    event = []
 
-    sorted_event = sorted(event, key = lambda x: (x[0], 0 if x[2]=="dropoff" else 1) )
+    for ride in ride_segments:
+
+        event.append((ride[0],"pickup",ride[2]))
+        event.append((ride[1],"dropoff",ride[2]))
+
+    sortedride = sorted(event, key = lambda x:(x[0],0 if x[1]=="dropoff" else 1))
 
     current_capacity = 0
-    for e in sorted_event:
-        if e[2]=="dropoff":
-            current_capacity-=e[1]
-        elif e[2]=="pickup":
-            current_capacity+=e[1]
-        if current_capacity> max_capacity:
-            return False
-    
+    for ride in sortedride:
+        if ride[1] == "pickup":
+            current_capacity+=ride[2]
+            if current_capacity>max_capacity:
+                return False
+        elif ride[1]=="dropoff":
+            current_capacity-=ride[2]
+        
     return True
+
 
 
 # Test cases

@@ -68,34 +68,40 @@ def calculate_average_movie_ratings(movie_data):
         A dictionary mapping movie title (str) to its average rating (float).
     """
     
-    total_rating = {}
-    total_count = {}
+    if not movie_data:
+        return {}
+
+    total = {}
+    count = {}
+
     for movie in movie_data:
-        
-        if 'title' not in movie or 'rating' not in movie:
+
+        if not all(key in movie for key in ["title","rating"]):
             continue
         
-        title  = movie['title']
+        title = movie['title']
         rating = movie['rating']
 
-        if isinstance(rating,str):
-            rating = float(rating)
+        if not isinstance(rating,float):
+            try:
+                rating = float(rating)
+            except:
+                continue
         
-
-
-        if title not in total_rating:
-            total_rating[title] = rating
-            total_count[title] =1
+        if title not in total:
+            total[title] = rating
+            count[title] = 1
         else:
-            total_rating[title]+=rating
-            total_count[title]+=1
+            total[title]+=rating
+            count[title]+=1
         
-    
-    result ={}
-    for title in total_rating:
-        result[title] = total_rating[title]/total_count[title]
+    result = {}
 
+    for t, r in total.items():
+
+        result[t] = total[t]/count[t]
     return result
+
             
 
 # Test cases

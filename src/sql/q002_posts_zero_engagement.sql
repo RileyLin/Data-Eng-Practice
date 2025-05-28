@@ -3,37 +3,59 @@ Question 2.3.1: Posts with Zero Engagement on Creation Day
 
 Write a SQL query to find post_ids for posts that received zero 'like' or 'react' events on the same calendar day they were created.
 
-Schema:
-posts:
-- post_id (PK)
-- creator_id
-- content_type
-- created_at (timestamp)
-- ...
+Schema based on setup_scripts/scenario_2_short_video_setup.sql:
 
-engagement_events:
-- event_id (PK)
-- post_id (FK -> posts)
-- user_id
-- event_type ('like', 'comment', 'share', 'react')
-- created_at (timestamp)
-- ...
+dim_posts_shortvideo:
+- post_key (PK, INTEGER, AUTOINCREMENT)
+- post_id (VARCHAR(50), UNIQUE NOT NULL) -- Public facing ID
+- creator_user_key (INTEGER, FK to dim_users_shortvideo)
+- original_post_key (INTEGER, FK to dim_posts_shortvideo) -- Self-ref for original post
+- parent_post_key (INTEGER, FK to dim_posts_shortvideo) -- Post that was shared
+- share_depth_level (INTEGER, DEFAULT 0)
+- created_timestamp (TEXT, ISO 8601 format)
+- is_original (BOOLEAN, DEFAULT TRUE)
+- content_text (TEXT)
+- video_url (TEXT)
+- ... (Other FKs: creator_user_key, original_post_key, parent_post_key)
+
+fact_engagement_events_shortvideo:
+- event_id (PK, INTEGER, AUTOINCREMENT)
+- user_key (INTEGER, FK to dim_users_shortvideo) -- User performing engagement
+- post_key (INTEGER, FK to dim_posts_shortvideo) -- Post being engaged with
+- engagement_type_key (INTEGER, FK to dim_engagement_types_shortvideo)
+- event_timestamp (TEXT, ISO 8601 format)
+- event_date_key (INTEGER, FK to dim_date)
+- event_time_key (INTEGER, FK to dim_time)
+- event_metadata (TEXT, JSON stored as TEXT)
+- ... (Other FKs: user_key, post_key, engagement_type_key, event_date_key, event_time_key)
+
+dim_engagement_types_shortvideo:
+- engagement_type_key (PK, INTEGER, AUTOINCREMENT)
+- engagement_type_name (TEXT, UNIQUE NOT NULL) -- e.g., 'view', 'like', 'comment', 'share'
+- description (TEXT)
+- is_active (BOOLEAN, DEFAULT TRUE)
+
+
+The question mentions 'like' or 'react' events. The `dim_engagement_types_shortvideo` table has 'like', 'comment', 'share', 'view'.
+Assuming 'react' is similar to 'like' or perhaps a broader category.
+For this solution, we will focus on 'like' as 'react' is not explicitly in the setup. If 'react' were present, it would be included in the IN clause.
 
 Expected Output:
-A list of post_ids that were created but received no 'like' or 'react' events on their creation day.
+A list of post_ids that were created but received no 'like' (or 'react') events on their creation day.
 */
 
 -- Write your SQL query here:
-SELECT p.post_id
-FROM posts p
+SELECT dp.post_id
+FROM dim_posts_shortvideo dp
 WHERE NOT EXISTS (
     SELECT 1
-    FROM engagement_events e
-    WHERE e.post_id = p.post_id
-    AND e.event_type IN ('like', 'react')
-    AND DATE(e.created_at) = DATE(p.created_at)
+    FROM fact_engagement_events_shortvideo fees
+    JOIN dim_engagement_types_shortvideo dets ON fees.engagement_type_key = dets.engagement_type_key
+    WHERE fees.post_key = dp.post_key
+      AND dets.engagement_type_name IN ('like', 'react') -- Adjust if 'react' has a different name or is covered by 'like'
+      AND DATE(fees.event_timestamp) = DATE(dp.created_timestamp)
 )
-ORDER BY p.post_id;
+ORDER BY dp.post_id;
 
 /*
 Explanation:

@@ -54,42 +54,33 @@ def get_top_n_movies_per_category(movie_data, n):
         of tuples, each tuple being (movie_title, rating), sorted in
         descending order of rating. Each list contains at most N movies.
     """
-    if not movie_data or n<1:
-        return {}
-    
-    categories = {}
-    
-    for movie in movie_data:
 
-        if 'title' not in movie or 'category' not in movie or 'rating' not in movie: 
+    if not movie_data or n<=0:
+        return {}
+
+    category = {}
+
+    for movie in movie_data:
+        if not all(i in movie for i in ['category','title','rating']):
             continue
 
-
-
+        cat = movie['category']
         title = movie['title']
-        category = movie['category']
         rating = movie['rating']
-
-        if isinstance(rating, str):
+        if not isinstance(rating,float):
             try:
                 rating = float(rating)
             except:
                 continue
+        if cat not in category:
+            category[cat]=[]
+        category[cat].append((title,rating))
 
-        if category not in categories:
-            categories[category] = [(title,rating)]
-        else: 
-            categories[category].append((title,rating))
-        
-    
     result = {}
 
-    for category,movie in categories.items():
-        
-        sorted_category = sorted(movie, key=lambda x:x[1], reverse=True)
-
-        result[category]=sorted_category[:n]
-    
+    for c,m in category.items():
+        sorted_movie = sorted(m,key = lambda x: x[1], reverse=True)
+        result[c] = sorted_movie[:n]
     return result
 
 # Test cases
