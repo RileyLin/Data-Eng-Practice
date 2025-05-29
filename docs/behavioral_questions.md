@@ -1,6 +1,71 @@
 ---
 title: "Meta Behavioral Interview Preparation Guide"
 ---
+**Reference Sheet for Your Behavioral Round**
+
+---
+
+## 1 / Project Matrix — scored on **Impact (I)**, **Scope (S)**, **Personal Contribution (C)**
+
+*(5 = highest)*
+
+| Project                                       | I     | S     | C     | Brief scope & contribution highlights                                                                                                         |
+| --------------------------------------------- | ----- | ----- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SalesMart Quoting Dashboard** *(flagship)*  | **5** | **4** | **5** | Unified quoting funnel; Snowflake SalesMart + snapshot layer; led 2 analysts, ran bi‑weekly stakeholder syncs; \$1.5 M projected premium lift |
+| **Book‑of‑Business Revamp**                   | 5     | 4     | 4     | 10 M policy rows; star schema + dbt + GE tests; reduced latency 7 d → 2 h; \$1.2 M retention                                                  |
+| **Census Pipeline (Influence w/o Authority)** | 4     | 3     | 4     | Daily ingest 200 k rows; prototype + ROI deck won Eng sprint; model refresh 7 d → 10 min; \$1 M lift                                          |
+| **Salesforce Data Migration**                 | 3     | 3     | 4     | Coordinated 5 teams; mentored 2 juniors; validation suite cut load errors to 0.8 %                                                            |
+| **Power BI Latency Fix**                      | 3     | 2     | 3     | Pre‑aggs + indexes; dashboard load 120 s → 9 s; +20 % exec usage                                                                              |
+| **Commission RCA (Failure → Learning)**       | 2     | 2     | 4     | Owned hot‑fix & RCA; prevented \$15 k loss; instituted QA checklist                                                                           |
+
+---
+
+## 2 / “Tell Me About Yourself” (\~ 2 min)
+
+> **“Hi, I’m Riley Lin — an analytics‑minded data engineer who loves turning raw data into reliable, self‑serve products that guide decisions.**
+>
+> **Background.** At **Symetra Financial** I split my time between hands‑on engineering (Snowflake + dbt, SQL, Python) and leading small pods to deliver BI products for underwriting and sales. Earlier rotations in actuarial analytics taught me to speak business as well as tech.
+>
+> **Impact highlights.** *First,* I merged three siloed policy systems into a Book‑of‑Business model that cut report latency from 7 days to 2 hours and unlocked a retention play worth **\$1.2 M**. *More recently,* I led a two‑analyst team to build a **SalesMart** quoting dashboard—now a top‑3 asset company‑wide—and surfaced funnel drop‑offs projected to add **\$1.5 M** in premium.
+>
+> **Looking ahead.** Those gains felt huge at an insurer, but I’m eager to tackle problems where shaving 1 % off latency resonates across **billions** of users. Meta’s culture of moving fast, scaling responsibly, and pushing AI‑driven insight is exactly where I want to grow and contribute.”
+
+---
+
+## 3 / Most‑Impactful Project — **SalesMart Quoting Dashboard** (STAR, \~ 2 min)
+
+> **Context** – Sales execs could see revenue booked but lacked visibility into the **quote‑to‑bind funnel**: no close‑ratio, no time‑to‑price, no churn insight. Data lived in 10 siloed reports.
+> **Task** – As project lead and data engineer, deliver a unified SalesMart + one‑stop dashboard within 12 months.
+> **Actions** –
+> • Led a pod of **2 analysts**; ran bi‑weekly backlog reviews with Sales, Finance, Product to lock metric definitions.
+> • Modelled a Snowflake **SalesMart** (fact + 5 dims) plus a **daily snapshot** table for trend analysis; dbt pipelines with Great Expectations tests.
+> • Replaced 10 legacy reports by launching a Power BI “Quote‑to‑Bind” dashboard with drill‑downs for region, broker, and product.
+> **Results** – Refresh time **2‑3 h → 15 min**; report count **10 → 1**; became a **top‑3 most‑used dashboard** (120 WAUs). Trend view exposed a 6 % quote‑to‑price drop‑off; fix is projected to lift annual premium **\$1.5 M**.
+> **Reflection** – Investing early in shared metric definitions and a snapshot layer turned BI from reactive to proactive insight—a lesson I now apply to every project.
+
+---
+
+## 4 / Conflict & Influence Story — **Census Data Pipeline** (STAR, \~ 1 ½ min)
+
+> **Context** – Census files (age, salary, dependents) are critical for pricing group policies, yet no team owned ingestion. Sales, Finance, Underwriting all needed the data but Engineering had **zero bandwidth**.
+> **Task** – Enable reliable, timely census data without formal authority or budget.
+> **Actions** –
+> • Spent two evenings mirroring an existing payroll ETL to land a **200 k‑row** census file in Snowflake—**live POC**.
+> • Built a one‑slide ROI model showing **\$800 k** annual premium lift from improved pricing accuracy.
+> • Demoed the POC to stakeholders; the live refresh cut model run‑time from 7 days to 10 min, which persuaded the Eng manager to allocate one sprint.
+> **Result** – Productionised daily census ingest in **3 months**; actuaries refresh risk models on demand, and Sales quotes two weeks faster, contributing **\$1 M** added premium last year.
+> **Reflection** – Influence comes from *evidence plus experience*: a working prototype + quantified upside turns “nice‑to‑have” into a funded priority.
+
+---
+
+**How to use this sheet**
+
+* Start with the TMAY to set the narrative.
+* Use the **SalesMart** STAR as your flagship “impact” story.
+* Keep the **Census pipeline** handy for conflict / influence questions.
+* Reference the matrix if the interviewer asks for other examples (e.g., failure = Commission RCA).
+
+Rehearse each section aloud until the flow feels natural—then you’ll have crisp, metric‑backed answers ready for whatever prompt comes your way.
 
 # How to Use These Examples for Your Meta Behavioral Interview
 

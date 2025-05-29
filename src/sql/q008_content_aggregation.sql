@@ -36,18 +36,10 @@ Ordered by content_id.
 */
 
 -- Write your SQL query here:
-SELECT
-    dcs.content_id, -- Select the public facing content_id
-    COUNT(DISTINCT fvs.user_key) AS distinct_user_count,
-    SUM(fvs.view_duration_seconds) AS sum_total_watch_time_seconds
-FROM
-    fact_viewing_sessions_streaming fvs
-JOIN
-    dim_content_streaming dcs ON fvs.content_key = dcs.content_key
-WHERE
-    fvs.date_key = 20230110 -- Example: YYYYMMDD format for an integer date_key from scenario_3_streaming_platform_setup.sql
-    -- If date_key in fact table was a DATE type, use: fvs.date_key = DATE '2023-01-10'
-GROUP BY
-    dcs.content_id
-ORDER BY
-    dcs.content_id; 
+select dcs.content_id,
+count(distinct fvs.user_key) as distinct_users,
+sum(fvs.view_duration_seconds) as total_watch_time
+ from 
+fact_viewing_sessions_streaming fvs
+left join dim_content_streaming dcs on dcs.content_key = fvs.content_key
+group by dcs.content_id

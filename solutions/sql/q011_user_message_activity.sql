@@ -5,63 +5,35 @@ Write a SQL query to find the top 5 user_ids who sent the most messages in the l
 along with their message count and the percentage of the total messages they represent.
 */
 
--- Assume a `messages` table with `message_id`, `sender_user_id`, `message_timestamp`.
+-- Assume a `messages` table with `message_id`, `sender_user_id`, `message_timestamp`. 
 
-WITH UserMessageCounts AS (
-    -- Count messages sent by each user in the last 30 days
-    SELECT
-        m.sender_user_id,
-        COUNT(m.message_id) AS messages_sent_count
-    FROM
-        messages m
-    WHERE
-        m.message_timestamp >= CURRENT_DATE - INTERVAL '30 days'
-        AND m.message_timestamp < CURRENT_DATE
-    GROUP BY
-        m.sender_user_id
+--4:05
+
+
+with total_message_last_30 as (
+select count(distinct message_id) as total_messages from messages 
+where message_timestamp >= dateadd(day,-30,getdate())
 ),
-TotalMessagesInPeriod AS (
-    -- Calculate the total number of messages sent in the period
-    SELECT
-        SUM(umc.messages_sent_count) AS total_messages
-    FROM
-        UserMessageCounts umc
+
+top_5_user as (
+select 
+sender_user_id, 
+count(message_id) as num_of_sent,
+ from 
+messages
+where message_timestamp >= dateadd(day,-30,getdate())
+group by sender_user_id
+order by num_of_sent desc
+LIMIT 5
 )
-SELECT
-    umc.sender_user_id,
-    umc.messages_sent_count,
-    CASE
-        WHEN (SELECT total_messages FROM TotalMessagesInPeriod) = 0 THEN 0.0
-        ELSE ROUND((umc.messages_sent_count * 100.0) / (SELECT total_messages FROM TotalMessagesInPeriod), 2)
-    END AS percentage_of_total_messages
-FROM
-    UserMessageCounts umc
-ORDER BY
-    umc.messages_sent_count DESC
-LIMIT 5;
+
+select tu.*, tu.num_of_sent*100.0/tml.total_messages as perc 
+from top_5_user tu 
+left join total_message_last_30 tml 
+on 1=1
+
 
 /*
-Explanation:
-
-1.  `UserMessageCounts` CTE:
-    *   Selects from the `messages` table (aliased as `m`).
-    *   Filters messages to include only those sent within the last 30 full days (`message_timestamp >= CURRENT_DATE - INTERVAL '30 days' AND message_timestamp < CURRENT_DATE`).
-    *   Groups the records by `sender_user_id`.
-    *   `COUNT(m.message_id) AS messages_sent_count` calculates the number of messages sent by each user in that period.
-
-2.  `TotalMessagesInPeriod` CTE:
-    *   Calculates the sum of all `messages_sent_count` from the `UserMessageCounts` CTE. This gives the grand total of messages sent by all users in the last 30 days.
-    *   This is done in a separate CTE to avoid calculating the sum repeatedly for each row in the final select if it were a subquery in the select list.
-
-3.  Final `SELECT` Statement:
-    *   Selects `sender_user_id` and their `messages_sent_count` from `UserMessageCounts`.
-    *   Calculates `percentage_of_total_messages`:
-        *   (`messages_sent_count` * 100.0) / `total_messages` (from `TotalMessagesInPeriod`).
-        *   Multiplying by `100.0` ensures floating-point division for the percentage.
-        *   A `CASE` statement is used to handle the edge case where `total_messages` might be 0 (e.g., no messages in the period), returning 0.0 to avoid division by zero.
-        *   `ROUND(..., 2)` formats the percentage to two decimal places.
-    *   `ORDER BY umc.messages_sent_count DESC` sorts the users by the number of messages they sent in descending order.
-    *   `LIMIT 5` restricts the output to the top 5 users.
 
 Schema Assumptions:
 messages:
@@ -113,3 +85,31 @@ INSERT INTO messages (sender_user_id, message_timestamp) VALUES
 -- 104            | 3                   | 10.34 ( (3/29)*100 )
 -- 105            | 2                   | 6.90  ( (2/29)*100 )
 */ 
+
+
+
+
+
+
+/*Explanation:
+
+1.  `UserMessageCounts` CTE:
+    *   Selects from the `messages` table (aliased as `m`).
+    *   Filters messages to include only those sent within the last 30 full days (`message_timestamp >= CURRENT_DATE - INTERVAL '30 days' AND message_timestamp < CURRENT_DATE`).
+    *   Groups the records by `sender_user_id`.
+    *   `COUNT(m.message_id) AS messages_sent_count` calculates the number of messages sent by each user in that period.
+
+2.  `TotalMessagesInPeriod` CTE:
+    *   Calculates the sum of all `messages_sent_count` from the `UserMessageCounts` CTE. This gives the grand total of messages sent by all users in the last 30 days.
+    *   This is done in a separate CTE to avoid calculating the sum repeatedly for each row in the final select if it were a subquery in the select list.
+
+3.  Final `SELECT` Statement:
+    *   Selects `sender_user_id` and their `messages_sent_count` from `UserMessageCounts`.
+    *   Calculates `percentage_of_total_messages`:
+        *   (`messages_sent_count` * 100.0) / `total_messages` (from `TotalMessagesInPeriod`).
+        *   Multiplying by `100.0` ensures floating-point division for the percentage.
+        *   A `CASE` statement is used to handle the edge case where `total_messages` might be 0 (e.g., no messages in the period), returning 0.0 to avoid division by zero.
+        *   `ROUND(..., 2)` formats the percentage to two decimal places.
+    *   `ORDER BY umc.messages_sent_count DESC` sorts the users by the number of messages they sent in descending order.
+    *   `LIMIT 5` restricts the output to the top 5 users.
+*/

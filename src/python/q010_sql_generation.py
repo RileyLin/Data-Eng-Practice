@@ -48,8 +48,19 @@ def generate_insert_sql(log_entry, target_table):
         str or None: A SQL INSERT statement string if valid input,
                     None if source table is unknown or required values are missing.
     """
-    # TODO: Implement your solution here
-    return None
+    #
+    if not log_entry or not target_table: 
+        return None 
+    
+    if 'table' not in log_entry or 'col1' not in log_entry:
+        return None
+    
+    log_copy = log_entry.copy()
+    table_name = log_entry['table']
+    del log_copy['table']
+
+    for col in log_copy:
+        
 
 # Test cases
 def test_generate_insert_sql():
