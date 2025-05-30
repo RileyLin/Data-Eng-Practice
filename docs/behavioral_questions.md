@@ -1,6 +1,97 @@
 ---
 title: "Meta Behavioral Interview Preparation Guide"
 ---
+### “5‑Bullet Cards” for Rapid Practice
+
+*(C = Context, T = Task, A1/A2 = two key Actions, R = Result, L = Lesson)*
+
+---
+
+#### 1. SalesMart Quoting Dashboard *(flagship)*
+
+* **C:** Execs stitched 10 reports; quoting analysis took **5 days**.
+* **T:** In 12 months, ship a single self‑serve dashboard & model.
+* **A1:** Ran two metric‑definition workshops → created data dictionary.
+* **A2:** Built Snowflake SalesMart + daily snapshot (dbt + GE); led 2 analysts.
+* **R:** Refresh **15 min** (‑90 %), projected **\$1.5 M** premium lift; top‑3 dashboard.
+* **L:** Up‑front metric alignment prevents months of downstream re‑work.
+
+---
+
+#### 2. Book‑of‑Business Revamp
+
+* **C:** Policy data in 3 silo systems; report latency **7 days**.
+* **T:** Deliver unified star‑schema model & dashboards in 6 weeks.
+* **A1:** Designed star schema; built dbt pipelines with incremental MERGE.
+* **A2:** Added GE tests & partition pruning for scale.
+* **R:** Latency **2 h**; **\$1.2 M** retention uplift; zero quality incidents.
+* **L:** Early QA gates compound; quality + scale are not trade‑offs.
+
+---
+
+#### 3. Census Pipeline *(Influence w/o Authority)*
+
+* **C:** No team owned census ingest; models stale **7 days**.
+* **T:** Enable daily ingest & adoption without formal authority.
+* **A1:** Built POC mirroring payroll ETL; landed **200 k‑row** file in Snowflake.
+* **A2:** Demo + \$800 k ROI deck → won Eng sprint to productionise.
+* **R:** Refresh **10 min**, **\$1 M** premium lift, daily auto‑ingest live.
+* **L:** Influence = working prototype + quantified upside.
+
+---
+
+#### 4. Salesforce Data Migration
+
+* **C:** Legacy quoting → Salesforce; go‑live risked data loss.
+* **T:** Migrate with < 1 % load error before launch window.
+* **A1:** Coordinated 5 teams; mentored 2 juniors on ETL modules.
+* **A2:** Built validation & reconciliation suite; automated checks.
+* **R:** Load errors **0.8 %**, zero downtime, juniors led 30 % of code.
+* **L:** Delegation + rigorous validation makes cutovers painless.
+
+---
+
+#### 5. Claims Gen‑AI Eligibility Solution
+
+* **C:** Manual PDF eligibility check **30 min**/claim, 90 % accuracy.
+* **T:** Pilot Gen‑AI summariser without direct authority.
+* **A1:** Spent two evenings building LLM POC; demoed to Claims team.
+* **A2:** Ran pilot on 10 agents; tracked accuracy & time.
+* **R:** Time **30 → 3 min** (‑90 %), accuracy **90 → 95 %**, **\$150 k** annual savings.
+* **L:** “Show, don’t tell” + small pilot converts skeptics to champions.
+
+---
+
+#### 6. Power BI Latency Fix
+
+* **C:** Exec dashboard load **120 s**; usage declining.
+* **T:** Cut latency < 10 s with no extra hardware.
+* **A1:** Moved heavy calcs upstream; built pre‑aggregates & summary tables.
+* **A2:** Added composite indexes; enabled incremental refresh.
+* **R:** Load **9 s**, exec usage **+20 %** week‑over‑week.
+* **L:** Performance *is* a feature—speed drives adoption.
+
+---
+
+#### 7. Commission RCA *(Failure → Learning)*
+
+* **C:** Logic bug over‑paid **\$15 k** commissions; payroll runs in 48 h.
+* **T:** Fix, reconcile, and prevent recurrence under deadline.
+* **A1:** Isolated job; patched SQL & back‑filled two days of payouts.
+* **A2:** Added unit tests + peer‑review checklist; canary anomaly alert.
+* **R:** Corrected before payroll; **0** defects in 8 months since.
+* **L:** Transparent ownership + systemic guardrails rebuild trust fast.
+
+---
+
+Use each card to practise 90‑second STAR delivery (C‑T‑A1‑A2‑R‑L) and stay laser‑focused in the interview.
+
+
+
+
+
+
+
 **Reference Sheet for Your Behavioral Round**
 
 ---
@@ -456,3 +547,21 @@ This guide is designed to help you leverage your own experiences to craft compel
 4. **Signal Richness** - Aim to weave in multiple positive signals into each story naturally. The follow-ups are your chance to elaborate on signals less prominent in the main story.
 
 Nail these, and you'll emit the right eight signals every time. Good luck—you've got this!
+
+
+Behavioral & Communication:
+ 
+ You have 5-6 STAR stories locked and loaded, covering a range of themes (leadership, conflict, big achievement, failure, teamwork, initiative, etc.). For each, you can deliver a concise narrative with a clear Result. You’ve practiced these aloud and they fit roughly into 2 minutes each.
+ 
+ Each story in your arsenal has at least one metric or specific outcome. You won’t say generic things like “it was a success” without backing it up. You’ll say “resulted in a 15% reduction in processing time” or “the project saved $100K annually” or “the team hit the deadline 1 week early” or even qualitative outcomes like “the client signed on for an extension of the project based on our performance.” If a story currently lacks this, you’ve added something – even if approximate – because Meta interviewers love to probe for impact.
+ 
+ You are ready for common follow-ups: “Why did you make that decision?”, “What was the hardest part?”, “What would you do differently?”, “How did you influence X?”, “How do you prioritize?” etc. You have short, honest answers to these for each story (thanks to the prep guide).
+ You have practiced your tone and clarity. You will speak clearly, avoid excessive filler words, and be mindful of time. If virtual, you’ve tested your microphone and camera, and you’ll ensure not to talk over the interviewer – you’ll pause appropriately for them to jump in or ask questions.
+ 
+ You have a strategy to handle tough or unexpected questions. If a question catches you off guard, you’ll remember to take a breath and structure a response (“Let me think – two things come to mind... first… second…”). If truly stumped, you’re prepared to ask clarifying questions or, in behavioral cases, acknowledge “I haven’t encountered exactly that, but I have a similar experience…” and then adapt.
+
+General Mindset and Logistics:
+ 
+ Meta Values/Mission: You’ve done a quick refresh on Meta’s mission (“Give people the power to build community and bring the world closer together”) and their values (e.g. move fast, be bold, focus on impact, etc.). You’ve subtly woven alignment to these into your answers (for example, mentioning community impact in the Carpool feature answer
+GitHub
+, or how you “focused on impact” in a project). This isn’t mandatory, but if the opportunity arises (like “Why Meta?”), you can genuinely speak to how you connect with their mission or products.
