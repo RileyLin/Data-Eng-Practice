@@ -9,12 +9,13 @@ title: "Meta Behavioral Interview Preparation Guide"
 
 *(5 = highest)*
 
-| Project                                       | I     | S     | C     | Brief scope & contribution highlights                                                                                                         |
+| Project                                       | Impact     | Scope     | Contribution     | Brief scope & contribution highlights                                                                                                         |
 | --------------------------------------------- | ----- | ----- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SalesMart Quoting Dashboard** *(flagship)*  | **5** | **4** | **5** | Unified quoting funnel; Snowflake SalesMart + snapshot layer; led 2 analysts, ran bi‑weekly stakeholder syncs; \$1.5 M projected premium lift |
 | **Book‑of‑Business Revamp**                   | 5     | 4     | 4     | 10 M policy rows; star schema + dbt + GE tests; reduced latency 7 d → 2 h; \$1.2 M retention                                                  |
 | **Census Pipeline (Influence w/o Authority)** | 4     | 3     | 4     | Daily ingest 200 k rows; prototype + ROI deck won Eng sprint; model refresh 7 d → 10 min; \$1 M lift                                          |
 | **Salesforce Data Migration**                 | 3     | 3     | 4     | Coordinated 5 teams; mentored 2 juniors; validation suite cut load errors to 0.8 %                                                            |
+| **Claims Gen AI Solution**                      | 4     | 3     | 3     | Influence without authority - spotted manual process and volunteer to solve it with solution                                                                               |
 | **Power BI Latency Fix**                      | 3     | 2     | 3     | Pre‑aggs + indexes; dashboard load 120 s → 9 s; +20 % exec usage                                                                              |
 | **Commission RCA (Failure → Learning)**       | 2     | 2     | 4     | Owned hot‑fix & RCA; prevented \$15 k loss; instituted QA checklist                                                                           |
 
@@ -28,7 +29,7 @@ title: "Meta Behavioral Interview Preparation Guide"
 >
 > **Impact highlights.** *First,* I merged three siloed policy systems into a Book‑of‑Business model that cut report latency from 7 days to 2 hours and unlocked a retention play worth **\$1.2 M**. *More recently,* I led a two‑analyst team to build a **SalesMart** quoting dashboard—now a top‑3 asset company‑wide—and surfaced funnel drop‑offs projected to add **\$1.5 M** in premium.
 >
-> **Looking ahead.** Those gains felt huge at an insurer, but I’m eager to tackle problems where shaving 1 % off latency resonates across **billions** of users. Meta’s culture of moving fast, scaling responsibly, and pushing AI‑driven insight is exactly where I want to grow and contribute.”
+> **Looking ahead.** “Looking ahead, I’m eager to tackle data problems whose scale—billions of users and petabytes of events—demands world‑class engineering, and to be at the forefront of applying and shaping Gen AI tools that turn that data into new product experiences. Meta’s investment in both scale and AI experimentation makes it the ideal place for that next chapter.”
 
 ---
 
