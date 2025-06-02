@@ -14,3 +14,4 @@ Efficiency metrics by batch size showing trade-offs between customer experience 
 */
 
 -- Write your SQL query here: 
+
