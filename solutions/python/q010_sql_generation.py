@@ -1,4 +1,4 @@
-\"\"\"
+"""
 Scenario 8: FB Messenger
 Question 8.4.1: SQL Generation
 
@@ -39,16 +39,16 @@ Considerations:
 - Different target tables might require different subsets of fields from `log_entry` or renaming of fields.
 - Basic type checking/conversion (e.g., ensuring numbers are not quoted as strings if the DB column is numeric).
 - Robust error handling for missing fields or type mismatches is important in a real system.
-\"\"\"
+"""
 
 def escape_sql_string(value: str) -> str:
-    \"\"\"Escapes single quotes in a string for SQL insertion.\"\"\"
+    """Escapes single quotes in a string for SQL insertion."""
     if value is None:
         return "NULL"
     return "'" + str(value).replace("'", "''") + "'"
 
 def generate_insert_sql(log_entry: dict, target_table: str) -> str:
-    \"\"\"
+    """
     Generates a SQL INSERT statement string from a log entry for a target table.
 
     Args:
@@ -57,7 +57,7 @@ def generate_insert_sql(log_entry: dict, target_table: str) -> str:
 
     Returns:
         A SQL INSERT statement string.
-    \"\"\"
+    """
     
     # Define schemas or column mappings for known target tables
     # This is a simplified approach. A more robust system might use a schema registry.

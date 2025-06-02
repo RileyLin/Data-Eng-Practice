@@ -61,28 +61,33 @@ def can_vehicle_complete_rides_with_capacity(ride_segments, max_capacity):
     
     Uses a sweep line algorithm to process pickup and dropoff events in chronological order.
     """
-    if not ride_segments or max_capacity <= 0:
+
+    if not ride_segments or max_capacity<=0:
         return False
     
-    # Create events for pickups and dropoffs
-    events = []
-    for start_time, end_time, num_passengers in ride_segments:
-        events.append((start_time, 'pickup', num_passengers))
-        events.append((end_time, 'dropoff', num_passengers))
+
+    # go through the ride segments and turn it into pick up and drop off 
+
+    all_rides =[]
+    for ride in ride_segments:
+        all_rides.append(ride[0],"pickup",ride[2])
+        all_rides.append(ride[1],"dropoff",ride[2])
+
     
-    # Sort events by time, with dropoffs before pickups at the same time
-    events.sort(key=lambda x: (x[0], 0 if x[1] == 'dropoff' else 1))
-    
-    current_capacity = 0
-    for time, event_type, num_passengers in events:
-        if event_type == 'pickup':
-            current_capacity += num_passengers
-            if current_capacity > max_capacity:
-                return False
-        else:  # dropoff
-            current_capacity -= num_passengers
-    
+    sorted_rides = sorted(all_rides,key = lambda x: (x[0], 0 if x[1]=="dropoff" else 1))
+
+    current_capacity= 0
+    for action in sorted_rides:
+        if action[1]=="pickup":
+            current_capacity+=action[2]
+        elif action[1]=="dropoff":
+            current_capacity-=action[2]
+
+        if current_capacity>max_capacity:
+            return False
+        
     return True
+
 
 # Test cases
 def test_can_vehicle_complete_rides_with_capacity():

@@ -80,6 +80,19 @@ Each scenario contains 4 parts (32 minutes total):
 
 ---
 
+## 🤝 Scenario 6: Friends Follow & Recommendation (NEW)
+**Theme**: Social graph analysis and friend suggestion optimization, considering private accounts.
+
+**Business Context**: Meta wants to increase meaningful connections by improving the "People You May Know" (PYMK) feature, but needs to carefully consider how private accounts affect success metrics and user experience.
+
+**Files**:
+- `scenario_6/01_product_sense.md` - Defining success for PYMK with private accounts
+- `scenario_6/02_data_modeling.md` - User relationships, privacy settings, and follow requests schema
+- `scenario_6/03_sql_analytics.md` - Follow success rate, mutual friends, PYMK effectiveness
+- `scenario_6/04_python_processing.py` - Friend recommendation algorithm based on graph features
+
+---
+
 ## 🚀 How to Practice
 
 ### **Option 1: Single Scenario Deep Dive (32 minutes)**

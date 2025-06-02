@@ -15,6 +15,9 @@ This directory contains solutions to the Python interview questions from the mai
 9. **q009_photo_upload_processing.py** - Solution for photo upload processing and stats aggregation
 10. **q010_sql_generation.py** - Solution for dynamic SQL INSERT statement generation
 11. **q011_order_batching.py** - Conceptual solution for food delivery order batching feasibility
+12. **q012_restaurant_delivery_time.py** - Solution for calculating delivery times from driver actions
+13. **q013_buffered_stream_formatter.py** - Solution for buffered stream data formatting
+14. **q014_friend_recommendation.py** - Solution for friend recommendation algorithm (PYMK system)
 
 ## Running Solutions
 

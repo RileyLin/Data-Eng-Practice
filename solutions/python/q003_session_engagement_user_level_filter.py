@@ -1,7 +1,8 @@
 # Placeholder for q003_session_engagement_user_level_filter.py
 
 def process_event_user_level_filter(event, buffer, totals, test_users):
-    \"\"\"
+   
+    '''
     Process a single engagement event, buffer it by session_id, and update 
     aggregate counts upon session_end. Events from test_users are excluded,
     even if they are in a session with non-test_users.
@@ -16,23 +17,24 @@ def process_event_user_level_filter(event, buffer, totals, test_users):
         
     Returns:
         None (updates buffer and totals in-place)
-    \"\"\"
+    '''
+    
     session_id = event['session_id']
     user_id = event['user_id']
     event_type = event['event_type']
-    
+
     # Initialize session in buffer if not already present
     if session_id not in buffer:
         buffer[session_id] = {
             'events': [],
             'users': set() # Still useful to track all users in session for other analytics if needed
         }
-    
+
     # Add event to session buffer
     # Crucially, the event itself (containing its specific user_id) is stored.
     buffer[session_id]['events'].append(event)
     buffer[session_id]['users'].add(user_id)
-    
+
     # If session_end event received, process the session
     if event_type == 'session_end':
         # Iterate through each event in the ended session

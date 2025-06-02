@@ -68,29 +68,35 @@ def process_event(event, buffer, totals, test_users):
     Returns:
         None (updates buffer and totals in-place)
     """
-    session_id = event['session_id']
-    user_id = event['user_id']
-    event_type = event['event_type']
 
-    # Initialize session in buffer if not already present
-    if session_id not in buffer:
-        buffer[session_id]={'event':[],'user': set()}
+    if not event: 
+        return 
+    
+    if not all(i in event for i in ['session_id','user_id','event_type']):
+        return 
+    
+    session_id = event.get('session_id')
+    user_id = event.get('user_id')
+    event_type = event.get('event_type')
+    if event_type!= 'session_end':
+        if session_id not in buffer:
+            buffer[session_id] = {user_id:[]}
+        if user_id not in buffer[session_id]:
+            buffer[session_id][user_id]=[]
+        buffer[session_id][user_id].append(event_type)
 
-    buffer[session_id]['event'].append(event)
-    buffer[session_id]['user'].add(user_id)
-    if event_type == 'session_end':
-        is_test_session = any(user in test_users for user in buffer[session_id]['user'])
-        if not is_test_session:
-            for e in buffer[session_id]['event']:
-                e_user_id = e['user_id']
-                e_event_type = e['event_type']
+    else: 
+        if session_id in buffer:
+            print(buffer[session_id][user_id])
+            for users,users_event in buffer[session_id].items():
+                if users not in test_users:
 
-                if e_event_type in totals:
-                    totals[e_event_type]+=1
-            
-        
-        del buffer[session_id]
-            
+                    current_event_type = users_event
+                    for event in current_event_type:
+                        totals[event]+=1
+
+            del buffer[session_id]
+    
 
 # Test cases
 def test_process_event():
@@ -132,5 +138,44 @@ def test_process_event():
     
     print("All test cases passed!")
 
+def test_process_event_2():
+    """
+    Test mixed sessions: regular users and test users in the same session.
+    Events from regular users should be counted, events from test users should be ignored.
+    """
+    # Setup test data
+    buffer = {}
+    totals = {'likes': 0, 'comments': 0, 'views': 0}
+    test_users = {'user_test_A', 'user_test_B'}
+    
+    # Mixed session with both regular and test users
+    # Regular user events
+    process_event({'session_id': 's3', 'user_id': 'user2', 'event_type': 'comments'}, 
+                 buffer, totals, test_users)
+    process_event({'session_id': 's3', 'user_id': 'user2', 'event_type': 'views'}, 
+                 buffer, totals, test_users)
+    
+    # Test user events in same session
+    process_event({'session_id': 's3', 'user_id': 'user_test_B', 'event_type': 'likes'}, 
+                 buffer, totals, test_users)
+    process_event({'session_id': 's3', 'user_id': 'user_test_B', 'event_type': 'comments'}, 
+                 buffer, totals, test_users)
+    
+    # Session end for regular user - should count their events
+    process_event({'session_id': 's3', 'user_id': 'user2', 'event_type': 'session_end'}, 
+                 buffer, totals, test_users)
+    
+    # Session end for test user - should not count their events
+    process_event({'session_id': 's3', 'user_id': 'user_test_B', 'event_type': 'session_end'}, 
+                 buffer, totals, test_users)
+    
+    # Verify that only regular user events were counted
+    assert totals['comments'] == 1, f"Expected 1 comment from regular user, but got {totals['comments']}"
+    assert totals['views'] == 1, f"Expected 1 view from regular user, but got {totals['views']}"
+    assert totals['likes'] == 0, f"Expected 0 likes (test user events ignored), but got {totals['likes']}"
+    assert 's3' not in buffer, "Session should be completely removed from buffer"
+    
+    print("Mixed session test passed! Regular user events counted, test user events ignored.")
+
 if __name__ == "__main__":
-    test_process_event() 
+    test_process_event_2() 

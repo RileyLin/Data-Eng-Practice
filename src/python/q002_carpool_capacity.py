@@ -82,30 +82,32 @@ def can_vehicle_complete_rides_with_capacity(ride_segments, max_capacity):
     # put the list of tuples in to list of actions that I can clissfy and track current capacity
 
 
+    
     if not ride_segments or max_capacity<=0:
         return False
     
-    event = []
 
+    # go through the ride segments and turn it into pick up and drop off 
+
+    all_rides =[]
     for ride in ride_segments:
+        all_rides.append((ride[0],"pickup",ride[2]))
+        all_rides.append((ride[1],"dropoff",ride[2]))
 
-        event.append((ride[0],"pickup",ride[2]))
-        event.append((ride[1],"dropoff",ride[2]))
+    
+    sorted_rides = sorted(all_rides,key = lambda x: (x[0], 0 if x[1]=="dropoff" else 1))
 
-    sortedride = sorted(event, key = lambda x:(x[0],0 if x[1]=="dropoff" else 1))
+    current_capacity= 0
+    for action in sorted_rides:
+        if action[1]=="pickup":
+            current_capacity+=action[2]
+        elif action[1]=="dropoff":
+            current_capacity-=action[2]
 
-    current_capacity = 0
-    for ride in sortedride:
-        if ride[1] == "pickup":
-            current_capacity+=ride[2]
-            if current_capacity>max_capacity:
-                return False
-        elif ride[1]=="dropoff":
-            current_capacity-=ride[2]
+        if current_capacity>max_capacity:
+            return False
         
     return True
-
-
 
 # Test cases
 def test_can_vehicle_complete_rides_with_capacity():

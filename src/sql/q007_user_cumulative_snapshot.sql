@@ -53,76 +53,76 @@ dim_date:
 Expected output: The user_cumulative_snapshot table should be updated.
 */
 
--- Logic Description is in the solution file.
--- SQL Outline (PostgreSQL syntax for MERGE or INSERT ON CONFLICT):
+-- SQL Solution using SELECT syntax with FULL OUTER JOIN and COALESCE
+-- This approach simulates the update of the user_cumulative_snapshot table for a given processing date.
+-- It avoids scanning the full fact_viewing_sessions_streaming table by processing only a daily delta.
 
--- 1. Define the processing date (e.g., yesterday's date_key or calendar_date)
--- For this example, let's assume we use calendar_date from dim_date for `processing_date`
--- And that fact_viewing_sessions_streaming.date_key corresponds to dim_date.date_key
+-- 1. Define the processing date dynamically (e.g., yesterday's date).
+--    The DailyUserViewSummary CTE will filter fact_viewing_sessions_streaming for this date.
 
--- 2. Create a CTE or Staging Table for the daily aggregated view time
 WITH DailyUserViewSummary AS (
+    -- Calculates daily aggregates for users from fact_viewing_sessions_streaming
+    -- for a specific processing date (e.g., yesterday).
     SELECT
         fvs.user_key,
         SUM(fvs.view_duration_seconds) AS daily_total_view_time,
         COUNT(DISTINCT fvs.session_guid) AS daily_sessions_count,
-        d.calendar_date AS processing_calendar_date -- Get the actual date for updates
+        d.calendar_date AS processing_calendar_date -- The actual date of the data being processed
     FROM
         fact_viewing_sessions_streaming fvs
     JOIN
         dim_date d ON fvs.date_key = d.date_key
     WHERE
-        d.calendar_date = (CURRENT_DATE - INTERVAL '1 day') -- Process for yesterday's data
+        -- This condition ensures only the delta for the specified date is processed.
+        -- Replace with a specific date string like '''YYYY-MM-DD''' for fixed date processing if needed.
+        d.calendar_date = (CURRENT_DATE - INTERVAL '''1 day''')
     GROUP BY
         fvs.user_key, d.calendar_date
+),
+CurrentSnapshot AS (
+    -- Represents the current state of the user_cumulative_snapshot table.
+    -- This CTE is used to clearly separate the existing snapshot data.
+    SELECT
+        user_key,
+        total_view_time_seconds,
+        last_updated_date,
+        first_active_date,
+        last_active_date,
+        total_sessions_count
+    FROM
+        user_cumulative_snapshot -- This is the table we are conceptually updating
 )
--- 3. Use MERGE (PostgreSQL 15+) or INSERT ON CONFLICT
-
--- Using INSERT ... ON CONFLICT DO UPDATE (Common PostgreSQL approach)
-INSERT INTO user_cumulative_snapshot (user_key, total_view_time_seconds, last_updated_date, first_active_date, last_active_date, total_sessions_count)
+-- 2. Merge daily summary with current snapshot using FULL OUTER JOIN and COALESCE.
+-- The SELECT statement below constructs the "new" state of the user_cumulative_snapshot.
+-- In a batch update process, you might use this SELECT to repopulate the table
+-- or use similar logic in an INSERT/UPDATE statement if the RDBMS doesn'''t support MERGE
+-- or if a MERGE is not desired.
 SELECT
-    delta.user_key,
-    delta.daily_total_view_time,
-    delta.processing_calendar_date, -- last_updated_date is the date of this batch
-    delta.processing_calendar_date, -- first_active_date for new users
-    delta.processing_calendar_date, -- last_active_date is updated to this batch date
-    delta.daily_sessions_count
-FROM
-    DailyUserViewSummary delta
-ON CONFLICT (user_key) DO UPDATE SET
-    total_view_time_seconds = user_cumulative_snapshot.total_view_time_seconds + EXCLUDED.total_view_time_seconds,
-    last_updated_date = EXCLUDED.last_updated_date, -- This is the processing_calendar_date from delta
-    last_active_date = EXCLUDED.last_active_date,   -- This is also the processing_calendar_date from delta
-    total_sessions_count = user_cumulative_snapshot.total_sessions_count + EXCLUDED.total_sessions_count
-    -- first_active_date remains unchanged for existing users
-;
+    -- User Key: from snapshot or delta if new
+    COALESCE(cs.user_key, dus.user_key) AS user_key,
 
--- For other databases like SQL Server, a MERGE statement would be more direct:
-/*
-MERGE INTO user_cumulative_snapshot snap
-USING (
-    SELECT
-        fvs.user_key,
-        SUM(fvs.view_duration_seconds) AS daily_total_view_time,
-        COUNT(DISTINCT fvs.session_guid) AS daily_sessions_count,
-        d.calendar_date AS processing_calendar_date
-    FROM
-        fact_viewing_sessions_streaming fvs
-    JOIN
-        dim_date d ON fvs.date_key = d.date_key
-    WHERE
-        d.calendar_date = (CURRENT_DATE - INTERVAL '1 day')
-    GROUP BY
-        fvs.user_key, d.calendar_date
-) AS delta
-ON snap.user_key = delta.user_key
-WHEN MATCHED THEN
-    UPDATE SET 
-        total_view_time_seconds = snap.total_view_time_seconds + delta.daily_total_view_time,
-        last_updated_date = delta.processing_calendar_date,
-        last_active_date = delta.processing_calendar_date,
-        total_sessions_count = snap.total_sessions_count + delta.daily_sessions_count
-WHEN NOT MATCHED BY TARGET THEN
-    INSERT (user_key, total_view_time_seconds, last_updated_date, first_active_date, last_active_date, total_sessions_count)
-    VALUES (delta.user_key, delta.daily_total_view_time, delta.processing_calendar_date, delta.processing_calendar_date, delta.processing_calendar_date, delta.daily_sessions_count);
-*/ 
+    -- Total View Time: sum of existing (or 0 if new) and new daily view time (or 0 if no new activity)
+    COALESCE(cs.total_view_time_seconds, 0) + COALESCE(dus.daily_total_view_time, 0) AS total_view_time_seconds,
+
+    -- Last Updated Date:
+    -- If user has new activity (in dus), it'''s the processing_calendar_date.
+    -- Else (user only in cs, no new activity), it'''s their existing last_updated_date.
+    COALESCE(dus.processing_calendar_date, cs.last_updated_date) AS last_updated_date,
+
+    -- First Active Date:
+    -- If user existed (in cs), keep their original first_active_date.
+    -- Else (new user, only in dus), it'''s the processing_calendar_date.
+    COALESCE(cs.first_active_date, dus.processing_calendar_date) AS first_active_date,
+
+    -- Last Active Date:
+    -- If user has new activity (in dus), it'''s the processing_calendar_date.
+    -- Else (user only in cs, no new activity), it'''s their existing last_active_date.
+    COALESCE(dus.processing_calendar_date, cs.last_active_date) AS last_active_date,
+
+    -- Total Sessions Count: sum of existing (or 0 if new) and new daily sessions (or 0 if no new activity)
+    COALESCE(cs.total_sessions_count, 0) + COALESCE(dus.daily_sessions_count, 0) AS total_sessions_count
+FROM
+    CurrentSnapshot cs
+FULL OUTER JOIN
+    DailyUserViewSummary dus ON cs.user_key = dus.user_key
+;

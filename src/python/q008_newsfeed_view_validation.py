@@ -74,49 +74,50 @@ def process_newsfeed_log(log, session_buffer):
         None (updates session_buffer in-place)
     """
     
+
     if not log: 
-        return
+        return 
+    
+    
+    
+    session_id = log.get('session_id')
+    post_id = log.get('post_id')
+    time_stamp = log.get('time_stamp')
+    event_type = log.get('event_type')
+    percentage = log.get('percentage')
 
-    session_id = log['session_id']
-    post_id = log['post_id']
-    time_stamp = log['time_stamp']
-    event_type = log['event_type']
-    percentage = log['percentage']
-
-    if not all(key in log for key in ['session_id','post_id','time_stamp','event_type','percentage']):
-        return
 
     if session_id not in session_buffer:
         session_buffer[session_id] = {}
 
-    if post_id not in session_buffer[session_id]:
-        session_buffer[session_id][post_id]={
-            'start_time' : None,
+    current_session = session_buffer[session_id]
+    if post_id not in current_session:
+        current_session[post_id] = {
+            'post_id':post_id,
+            'start_time':None,
             'end_time': None,
-            'max_perc': 0
+            'max_perc':percentage
+
         }
 
-    
-    current_session = session_buffer[session_id][post_id]
-    current_start_time = current_session['start_time']
-    current_end_time = current_session['end_time']
+    current_post = current_session[post_id]
 
-    if event_type =='start':
-        if current_session['start_time'] is not None and 'start_time' in current_session: 
-            current_session['start_time'] = min(current_session['start_time'],time_stamp)
 
+    if event_type == 'start':
+        if current_post['start_time'] is None:
+            current_post['start_time'] = time_stamp
         else: 
-            current_session['start_time'] = int(time_stamp)
-
-    elif event_type =='end':
-        if current_session['end_time'] is not None and 'end_time' in current_session: 
-            current_session['end_time'] = max(current_session['end_time'],time_stamp)
-        else: 
-            current_session['end_time'] = int(time_stamp)
-
-
-    current_session['max_perc'] = max(current_session['max_perc'],percentage)
+            current_post['start_time'] = min(time_stamp,current_post['start_time'])
     
+    if event_type == 'end':
+        if current_post['end_time'] is None:
+            current_post['end_time'] = time_stamp
+        else:
+            current_post['end_time'] = max(time_stamp,current_post['end_time'])
+        
+    current_post['max_perc'] = max(current_post['max_perc'],percentage)
+
+
         
 
 def calculate_session_valid_reads(session_id: str, session_buffer: dict) -> int:
@@ -136,23 +137,27 @@ def calculate_session_valid_reads(session_id: str, session_buffer: dict) -> int:
 
     """
 
+    if not session_id:
+        return None
+    
+    valid_counts = 0
     session = session_buffer[session_id]
+    print(session)
+    for post in session.values():
+        print(post)
+        if post['end_time'] is not None and post['start_time'] is not None and post['end_time']>=post['start_time']:
+            
+            duration = post['end_time']-post['start_time']
+
+            if duration>=5:
+                valid_counts+=1
+            elif post['max_perc']>=80:
+                valid_counts +=1
 
 
-    count = 0
+    return valid_counts 
 
-    for post in session: 
-        start = session[post]['start_time']
-        end = session[post]['end_time']
 
-        perc = session[post]['max_perc']
-        if (end-start)>=5:
-            count+=1
-        elif perc>=80:
-            count+=1
-        else:
-            continue
-    return count
 
 # Test cases
 def test_newsfeed_view_validation():
