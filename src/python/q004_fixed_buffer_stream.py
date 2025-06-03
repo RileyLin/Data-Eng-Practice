@@ -104,22 +104,27 @@ def process_fixed_buffer_stream(event_item, buffer, buffer_size, totals_engageme
     Note: totals_engagement and totals_view_seconds are expected to be mutable objects
     that will be updated in-place (e.g., a list with a single element: [0], [0.0])
     """
+
+    if not event_item or buffer_size<=0:
+        return 
     
+    if not all(i in event_item for i in ['user_id','event_type','post_id']):
+        return 
+
+    user_id = event_item['user_id']
+    event_type = event_item['event_type']
+    post_id = event_item['post_id']
+
     if len(buffer)<buffer_size:
-        buffer.append(event_item)
-
+        test_user =   user_id in test_users
+        buffer.append({'data':event_type,'is_test':test_users})
     else:
-        old_item = buffer.pop(0)
-
-        user_id = old_item['user_id']
-
-        if user_id not in test_users:
-            if old_item['event_type']=='view':
-                totals_view_seconds[0]+=old_item['view_duration_ms']/1000
-            else: 
-                totals_engagement[0]+=1
+        processed = buffer.pop(0)
+        if processed['data']=='view':
+            totals_view_seconds+processed['data']
+        else:
+            totals_engagement+=1
         
-        buffer.append(event_item)
 
 def flush_fixed_buffer(buffer, totals_engagement, totals_view_seconds, test_users):
     """
@@ -131,17 +136,7 @@ def flush_fixed_buffer(buffer, totals_engagement, totals_view_seconds, test_user
         totals_view_seconds (float): Running total of view duration in seconds (passed by reference)
         test_users (set): Set of test user IDs to exclude from aggregation
     """
-    if not buffer: 
-        return
-    for event in buffer: 
-        user_id = event['user_id']
-        if user_id not in test_users:
-            if event['event_type']=='view':
-                totals_view_seconds[0]+=event['view_duration_ms']/1000
-            else: 
-                totals_engagement[0]+=1
-    
-    buffer.clear()
+
 
 
 # Test cases

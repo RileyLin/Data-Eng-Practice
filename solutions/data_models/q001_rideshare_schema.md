@@ -73,47 +73,78 @@ The model uses two fact tables with a one-to-many relationship:
 
 ```mermaid
 erDiagram
-    fact_rides ||--o{ fact_ride_segments : contains
-    fact_rides }o--|| dim_users : has_driver
-    fact_ride_segments }o--|| dim_users : has_rider
-    fact_rides }o--|| dim_ride_type : has_type
-    fact_rides }o--|| dim_location : has_start_location
-    fact_rides }o--|| dim_location : has_end_location
-    fact_ride_segments }o--|| dim_location : has_pickup_location
-    fact_ride_segments }o--|| dim_location : has_dropoff_location
-    fact_rides }o--|| dim_vehicle : has_vehicle
-    fact_rides }o--|| dim_date : has_date
-    fact_rides }o--|| dim_time : has_time
+    %% ================ Dimensions =================
+    dim_drivers {
+        bigint driver_id PK
+        string vehicle_type
+        string home_city
+        timestamp onboarded_ts
+    }
 
+    dim_riders {
+        bigint rider_id PK
+        timestamp signup_ts
+        string rider_tier
+    }
+
+    dim_city {
+        bigint city_id PK
+        string city_name
+        string region
+    }
+
+    %% ================ Parent fact ================
     fact_rides {
         bigint ride_id PK
-        bigint driver_user_key FK
-        bigint ride_type_key FK
-        bigint vehicle_key FK
-        bigint start_location_key FK
-        bigint end_location_key FK
-        timestamp start_timestamp
-        timestamp end_timestamp
-        decimal total_fare
-        decimal total_distance
-        int total_duration
-        bigint date_key FK
-        bigint time_key FK
+        bigint driver_id FK
+        bigint city_id FK
+        timestamp start_ts
+        timestamp end_ts
+        smallint seats_offered
+        smallint seats_filled
+        boolean is_carpool
+        decimal total_distance_km
+        decimal revenue_usd
     }
 
+    %% ================ Child fact (segment) =======
     fact_ride_segments {
-        bigint ride_segment_id PK
+        bigint segment_id PK
         bigint ride_id FK
-        bigint rider_user_key FK
-        timestamp segment_pickup_timestamp
-        timestamp segment_dropoff_timestamp
-        bigint segment_pickup_location_key FK
-        bigint segment_dropoff_location_key FK
-        decimal segment_fare
-        decimal segment_distance
-        int pickup_sequence_in_ride
-        int dropoff_sequence_in_ride
+        bigint rider_id FK
+        tinyint seats_booked
+        decimal pickup_lat
+        decimal pickup_lon
+        timestamp pickup_ts
+        decimal dropoff_lat
+        decimal dropoff_lon
+        timestamp dropoff_ts
+        decimal fare_usd
     }
+
+    %% ================ Mutable event logs =========
+    fact_driver_status_events {
+        bigint status_event_id PK
+        bigint driver_id FK
+        string status
+        timestamp event_ts
+    }
+
+    fact_rating_events {
+        bigint rating_event_id PK
+        bigint ride_id FK
+        bigint rider_id FK
+        tinyint rating_value
+        timestamp rating_ts
+    }
+
+    %% ================ Relationships ==============
+    dim_drivers ||--o{ fact_rides : drives
+    dim_city ||--o{ fact_rides : occurs_in
+    fact_rides ||--o{ fact_ride_segments : has_segment
+    dim_riders ||--o{ fact_ride_segments : rides
+    dim_drivers ||--o{ fact_driver_status_events : status_log
+    fact_rides ||--o{ fact_rating_events : rated_by
 ```
 
 ### Conclusion
@@ -121,3 +152,78 @@ erDiagram
 This data model represents a standard star schema approach with a bridge table (fact_ride_segments) to handle the many-to-many relationship between rides and riders. The model effectively balances analytical flexibility with reasonable query performance. 
 
 While alternative approaches using arrays or JSON could reduce joins for some queries, they would significantly limit analytical capabilities. For a data warehouse supporting business intelligence and analytics, this normalized approach is generally superior, especially as data volumes grow. 
+
+```mermaid
+erDiagram
+    %%================ Dimensions =================
+    dim_drivers {
+        bigint driver_id PK
+        string vehicle_type
+        string home_city
+        timestamp onboarded_ts
+    }
+
+    dim_riders {
+        bigint rider_id PK
+        timestamp signup_ts
+        string rider_tier
+    }
+
+    dim_city {
+        bigint city_id PK
+        string city_name
+        string region
+    }
+
+    %%================ Parent fact ================
+    fact_rides {
+        bigint  ride_id PK
+        bigint  driver_id FK
+        bigint  city_id   FK
+        timestamp start_ts
+        timestamp end_ts
+        smallint seats_offered
+        smallint seats_filled
+        boolean  is_carpool
+        decimal  total_distance_km
+        decimal  revenue_usd
+    }
+
+    %%================ Child fact (segment) =======
+    fact_ride_segments {
+        bigint  segment_id PK
+        bigint  ride_id    FK
+        bigint  rider_id   FK
+        tinyint seats_booked
+        decimal pickup_lat
+        decimal pickup_lon
+        timestamp pickup_ts
+        decimal dropoff_lat
+        decimal dropoff_lon
+        timestamp dropoff_ts
+        decimal fare_usd
+    }
+
+    %%================ Mutable event logs =========
+    fact_driver_status_events {
+        bigint status_event_id PK
+        bigint driver_id FK
+        string status
+        timestamp event_ts
+    }
+
+    fact_rating_events {
+        bigint rating_event_id PK
+        bigint ride_id   FK
+        bigint rider_id  FK
+        tinyint rating_value
+        timestamp rating_ts
+    }
+
+    %%================ Relationships ==============
+    dim_drivers ||--o{ fact_rides              : drives
+    dim_city    ||--o{ fact_rides              : occurs_in
+    fact_rides  ||--o{ fact_ride_segments      : has_segment
+    dim_riders  ||--o{ fact_ride_segments      : rides
+    dim_drivers ||--o{ fact_driver_status_events : status_log
+    fact_rides  ||--o{ fact_rating_events      : rated_by

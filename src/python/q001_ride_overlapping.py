@@ -64,22 +64,16 @@ def can_user_complete_rides(requested_rides):
     Returns:
         True if no rides overlap, False otherwise.
     """
-    
     if not requested_rides:
         return True 
     
-    if len(requested_rides)<1:
-        return False
-    
-    sorted_rides = requested_rides
-
-    sorted_rides.sort(key = lambda x:x[1])
+    sorted_rides = sorted(requested_rides, key = lambda x:x[0])
 
     previous_end_time = 0
 
     for ride in sorted_rides:
 
-        if ride[0]<previous_end_time:
+        if ride[0]<previous_end_time: 
             return False
         
         previous_end_time = ride[1]
@@ -87,8 +81,61 @@ def can_user_complete_rides(requested_rides):
     return True
 
 
+def can_user_complete_rides_with_conflicts(requested_rides):
+    """
+    Variation: Accepts ride requests as list of dicts and returns (bool, conflicting_ride_ids).
+    Each dict: {'id': int, 'start': int, 'end': int, 'type': str}
+    Returns (True/False, list_of_conflicting_ride_ids)
+    """
+    if not requested_rides:
+        return (True, [])
+    
+    conflict_ids = set()
+    sorted_rides = sorted(requested_rides, key=lambda x: x['start'])
+    
+    previous_end_time = 0
+    previous_ride = None
+    
+    for ride in sorted_rides:
+        if ride['start'] < previous_end_time:
+            # Current ride conflicts with previous ride
+            conflict_ids.add(ride['id'])
+            if previous_ride:
+                conflict_ids.add(previous_ride['id'])
+        
+        # Update previous_end_time to the maximum end time seen so far
+        if ride['end'] > previous_end_time:
+            previous_end_time = ride['end']
+            previous_ride = ride
+    
+    # Return (can_complete, conflicting_ids)
+    return (len(conflict_ids) == 0, sorted(list(conflict_ids)))
 
-
+def get_ride_schedule_summary(requested_rides):
+    """
+    Bonus variation: Returns detailed scheduling information.
+    Input: List of dicts with {'id', 'start', 'end', 'type'}
+    Returns: Dict with scheduling analysis
+    """
+    if not requested_rides:
+        return {'can_complete': True, 'total_time': 0, 'conflicts': [], 'ride_count': 0}
+    
+    can_complete, conflicts = can_user_complete_rides_with_conflicts(requested_rides)
+    
+    total_time = sum(ride['end'] - ride['start'] for ride in requested_rides)
+    ride_types = {}
+    
+    for ride in requested_rides:
+        ride_type = ride.get('type', 'unknown')
+        ride_types[ride_type] = ride_types.get(ride_type, 0) + 1
+    
+    return {
+        'can_complete': can_complete,
+        'total_time': total_time,
+        'conflicts': conflicts,
+        'ride_count': len(requested_rides),
+        'ride_types': ride_types
+    }
 
 # Test cases
 def test_can_user_complete_rides():
@@ -98,5 +145,89 @@ def test_can_user_complete_rides():
     assert can_user_complete_rides([]) == True
     print("All test cases passed!")
 
+# Test cases for variations
+
+def test_can_user_complete_rides_with_conflicts():
+    # Test 1: No conflicts
+    rides = [
+        {'id': 1, 'start': 0, 'end': 30, 'type': 'regular'},
+        {'id': 2, 'start': 30, 'end': 60, 'type': 'regular'},
+        {'id': 3, 'start': 70, 'end': 90, 'type': 'premium'}
+    ]
+    assert can_user_complete_rides_with_conflicts(rides) == (True, [])
+    
+    # Test 2: Two rides overlap
+    rides = [
+        {'id': 1, 'start': 0, 'end': 60, 'type': 'regular'},
+        {'id': 2, 'start': 30, 'end': 90, 'type': 'premium'}
+    ]
+    assert can_user_complete_rides_with_conflicts(rides) == (False, [1, 2])
+    
+    # Test 3: Multiple conflicts
+    rides = [
+        {'id': 1, 'start': 0, 'end': 50, 'type': 'regular'},
+        {'id': 2, 'start': 25, 'end': 75, 'type': 'premium'},
+        {'id': 3, 'start': 60, 'end': 100, 'type': 'regular'},
+        {'id': 4, 'start': 80, 'end': 120, 'type': 'premium'}
+    ]
+    assert can_user_complete_rides_with_conflicts(rides) == (False, [2, 3, 4])
+    
+    # Test 4: Empty input
+    rides = []
+    assert can_user_complete_rides_with_conflicts(rides) == (True, [])
+    
+    # Test 5: Single ride
+    rides = [{'id': 1, 'start': 10, 'end': 20, 'type': 'regular'}]
+    assert can_user_complete_rides_with_conflicts(rides) == (True, [])
+    
+    print("All conflict detection test cases passed!")
+
+def test_get_ride_schedule_summary():
+    # Test 1: Normal case with no conflicts
+    rides = [
+        {'id': 1, 'start': 0, 'end': 30, 'type': 'regular'},
+        {'id': 2, 'start': 30, 'end': 60, 'type': 'premium'},
+        {'id': 3, 'start': 70, 'end': 90, 'type': 'regular'}
+    ]
+    result = get_ride_schedule_summary(rides)
+    expected = {
+        'can_complete': True,
+        'total_time': 80,  # 30 + 30 + 20
+        'conflicts': [],
+        'ride_count': 3,
+        'ride_types': {'regular': 2, 'premium': 1}
+    }
+    assert result == expected
+    
+    # Test 2: With conflicts
+    rides = [
+        {'id': 1, 'start': 0, 'end': 60, 'type': 'regular'},
+        {'id': 2, 'start': 30, 'end': 90, 'type': 'premium'}
+    ]
+    result = get_ride_schedule_summary(rides)
+    expected = {
+        'can_complete': False,
+        'total_time': 120,  # 60 + 60
+        'conflicts': [1, 2],
+        'ride_count': 2,
+        'ride_types': {'regular': 1, 'premium': 1}
+    }
+    assert result == expected
+    
+    # Test 3: Empty input
+    result = get_ride_schedule_summary([])
+    expected = {
+        'can_complete': True,
+        'total_time': 0,
+        'conflicts': [],
+        'ride_count': 0,
+        'ride_types': {}
+    }
+    assert result == expected
+    
+    print("All schedule summary test cases passed!")
+
 if __name__ == "__main__":
-    test_can_user_complete_rides() 
+    test_can_user_complete_rides()
+    test_can_user_complete_rides_with_conflicts()
+    test_get_ride_schedule_summary() 

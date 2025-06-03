@@ -122,5 +122,84 @@ def test_can_vehicle_complete_rides_with_capacity():
     
     print("All test cases passed!")
 
+def can_vehicle_complete_rides_with_capacity_dict(ride_segments, max_capacity):
+    """
+    Variation: Accepts ride_segments as a list of dicts and returns (bool, max_passengers).
+    Each dict: {'start': int, 'end': int, 'passengers': int}
+    Returns (True/False, max_passengers_seen)
+    """
+
+    if not ride_segments or max_capacity<=0:
+        return (False,0)
+    
+    all_segments = []
+    
+    for segment in ride_segments: 
+
+        all_segments.append((segment['start'],'pickup',segment['passengers']))
+        all_segments.append((segment['end'],'dropoff',segment['passengers']))
+
+    current_capacity = 0
+    max_num = 0
+
+    sorted_segments = sorted(all_segments,key = lambda x:(x[0],0 if x[1]=='dropoff' else 1))
+    
+    for segment in sorted_segments:
+        
+        if segment[1]=='pickup':
+            current_capacity+=segment[2]
+        elif segment[1]=='dropoff':
+            current_capacity-=segment[2]
+        max_num= max(max_num,current_capacity)
+
+        if current_capacity>max_capacity:
+            print((False,max_num))
+            return (False,max_num)
+
+    print(max_num)
+    return (True,max_num)
+
+
+
+
+# New test cases for the variation
+
+def test_can_vehicle_complete_rides_with_capacity_dict():
+    # Test 1: Exceeds capacity
+    rides = [
+        {'start': 0, 'end': 5, 'passengers': 2},
+        {'start': 1, 'end': 3, 'passengers': 3},
+        {'start': 6, 'end': 8, 'passengers': 1}
+    ]
+    assert can_vehicle_complete_rides_with_capacity_dict(rides, 4) == (False, 5)
+
+    # Test 2: Exactly at capacity
+    rides = [
+        {'start': 0, 'end': 5, 'passengers': 2},
+        {'start': 0, 'end': 2, 'passengers': 1},
+        {'start': 3, 'end': 6, 'passengers': 1}
+    ]
+    assert can_vehicle_complete_rides_with_capacity_dict(rides, 3) == (True, 3)
+
+    # Test 3: Simultaneous pickup/dropoff
+    rides = [
+        {'start': 0, 'end': 5, 'passengers': 3},
+        {'start': 5, 'end': 10, 'passengers': 2}
+    ]
+    assert can_vehicle_complete_rides_with_capacity_dict(rides, 3) == (True, 3)
+
+    # Test 4: Empty input
+    rides = []
+    assert can_vehicle_complete_rides_with_capacity_dict(rides, 4) == (False, 0)
+
+    # Test 5: Negative/zero capacity
+    rides = [
+        {'start': 0, 'end': 1, 'passengers': 1}
+    ]
+    assert can_vehicle_complete_rides_with_capacity_dict(rides, 0) == (False, 0)
+
+    print("All dict-based test cases passed!")
+
 if __name__ == "__main__":
-    test_can_vehicle_complete_rides_with_capacity() 
+    #test_can_vehicle_complete_rides_with_capacity()
+    test_can_vehicle_complete_rides_with_capacity_dict() 

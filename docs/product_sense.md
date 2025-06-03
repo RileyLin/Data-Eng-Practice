@@ -159,47 +159,78 @@ The model uses two fact tables with a one-to-many relationship:
 
 ```mermaid
 erDiagram
-    fact_rides ||--o{ fact_ride_segments : contains
-    fact_rides }o--|| dim_users : has_driver
-    fact_ride_segments }o--|| dim_users : has_rider
-    fact_rides }o--|| dim_ride_type : has_type
-    fact_rides }o--|| dim_location : has_start_location
-    fact_rides }o--|| dim_location : has_end_location
-    fact_ride_segments }o--|| dim_location : has_pickup_location
-    fact_ride_segments }o--|| dim_location : has_dropoff_location
-    fact_rides }o--|| dim_vehicle : has_vehicle
-    fact_rides }o--|| dim_date : has_date
-    fact_rides }o--|| dim_time : has_time
+    %% ================ Dimensions =================
+    dim_drivers {
+        bigint driver_id PK
+        string vehicle_type
+        string home_city
+        timestamp onboarded_ts
+    }
 
+    dim_riders {
+        bigint rider_id PK
+        timestamp signup_ts
+        string rider_tier
+    }
+
+    dim_city {
+        bigint city_id PK
+        string city_name
+        string region
+    }
+
+    %% ================ Parent fact ================
     fact_rides {
         bigint ride_id PK
-        bigint driver_user_key FK
-        bigint ride_type_key FK
-        bigint vehicle_key FK
-        bigint start_location_key FK
-        bigint end_location_key FK
-        timestamp start_timestamp
-        timestamp end_timestamp
-        decimal total_fare
-        decimal total_distance
-        int total_duration
-        bigint date_key FK
-        bigint time_key FK
+        bigint driver_id FK
+        bigint city_id FK
+        timestamp start_ts
+        timestamp end_ts
+        smallint seats_offered
+        smallint seats_filled
+        boolean is_carpool
+        decimal total_distance_km
+        decimal revenue_usd
     }
 
+    %% ================ Child fact (segment) =======
     fact_ride_segments {
-        bigint ride_segment_id PK
+        bigint segment_id PK
         bigint ride_id FK
-        bigint rider_user_key FK
-        timestamp segment_pickup_timestamp
-        timestamp segment_dropoff_timestamp
-        bigint segment_pickup_location_key FK
-        bigint segment_dropoff_location_key FK
-        decimal segment_fare
-        decimal segment_distance
-        int pickup_sequence_in_ride
-        int dropoff_sequence_in_ride
+        bigint rider_id FK
+        tinyint seats_booked
+        decimal pickup_lat
+        decimal pickup_lon
+        timestamp pickup_ts
+        decimal dropoff_lat
+        decimal dropoff_lon
+        timestamp dropoff_ts
+        decimal fare_usd
     }
+
+    %% ================ Mutable event logs =========
+    fact_driver_status_events {
+        bigint status_event_id PK
+        bigint driver_id FK
+        string status
+        timestamp event_ts
+    }
+
+    fact_rating_events {
+        bigint rating_event_id PK
+        bigint ride_id FK
+        bigint rider_id FK
+        tinyint rating_value
+        timestamp rating_ts
+    }
+
+    %% ================ Relationships ==============
+    dim_drivers ||--o{ fact_rides : drives
+    dim_city ||--o{ fact_rides : occurs_in
+    fact_rides ||--o{ fact_ride_segments : has_segment
+    dim_riders ||--o{ fact_ride_segments : rides
+    dim_drivers ||--o{ fact_driver_status_events : status_log
+    fact_rides ||--o{ fact_rating_events : rated_by
 ```
 
 ### Conclusion
@@ -207,6 +238,668 @@ erDiagram
 This data model represents a standard star schema approach with a bridge table (fact_ride_segments) to handle the many-to-many relationship between rides and riders. The model effectively balances analytical flexibility with reasonable query performance. 
 
 While alternative approaches using arrays or JSON could reduce joins for some queries, they would significantly limit analytical capabilities. For a data warehouse supporting business intelligence and analytics, this normalized approach is generally superior, especially as data volumes grow. 
+
+```mermaid
+erDiagram
+    %%================ Dimensions =================
+    dim_drivers {
+        bigint driver_id PK
+        string vehicle_type
+        string home_city
+        timestamp onboarded_ts
+    }
+
+    dim_riders {
+        bigint rider_id PK
+        timestamp signup_ts
+        string rider_tier
+    }
+
+    dim_city {
+        bigint city_id PK
+        string city_name
+        string region
+    }
+
+    %%================ Parent fact ================
+    fact_rides {
+        bigint  ride_id PK
+        bigint  driver_id FK
+        bigint  city_id   FK
+        timestamp start_ts
+        timestamp end_ts
+        smallint seats_offered
+        smallint seats_filled
+        boolean  is_carpool
+        decimal  total_distance_km
+        decimal  revenue_usd
+    }
+
+    %%================ Child fact (segment) =======
+    fact_ride_segments {
+        bigint  segment_id PK
+        bigint  ride_id    FK
+        bigint  rider_id   FK
+        tinyint seats_booked
+        decimal pickup_lat
+        decimal pickup_lon
+        timestamp pickup_ts
+        decimal dropoff_lat
+        decimal dropoff_lon
+        timestamp dropoff_ts
+        decimal fare_usd
+    }
+
+    %%================ Mutable event logs =========
+    fact_driver_status_events {
+        bigint status_event_id PK
+        bigint driver_id FK
+        string status
+        timestamp event_ts
+    }
+
+    fact_rating_events {
+        bigint rating_event_id PK
+        bigint ride_id   FK
+        bigint rider_id  FK
+        tinyint rating_value
+        timestamp rating_ts
+    }
+
+    %%================ Relationships ==============
+    dim_drivers ||--o{ fact_rides              : drives
+    dim_city    ||--o{ fact_rides              : occurs_in
+    fact_rides  ||--o{ fact_ride_segments      : has_segment
+    dim_riders  ||--o{ fact_ride_segments      : rides
+    dim_drivers ||--o{ fact_driver_status_events : status_log
+    fact_rides  ||--o{ fact_rating_events      : rated_by
+```
+### Conclusion
+
+This data model represents a standard star schema approach with a bridge table (fact_ride_segments) to handle the many-to-many relationship between rides and riders. The model effectively balances analytical flexibility with reasonable query performance. 
+
+While alternative approaches using arrays or JSON could reduce joins for some queries, they would significantly limit analytical capabilities. For a data warehouse supporting business intelligence and analytics, this normalized approach is generally superior, especially as data volumes grow. 
+
+
+### Python
+
+```python
+
+        def can_user_complete_rides(requested_rides):
+            """
+            Checks if a list of ride requests (start_time, end_time) for a single user overlap.
+            
+            Args:
+                requested_rides: A list of tuples, where each tuple is (start_time, end_time).
+                                Times are integers. Assumes end_time > start_time.
+            
+            Returns:
+                True if no rides overlap, False otherwise.
+            """
+            if not requested_rides:
+                return True 
+            
+            sorted_rides = sorted(requested_rides, key = lambda x:x[0])
+
+            previous_end_time = 0
+
+            for ride in sorted_rides:
+
+                if ride[0]<previous_end_time: 
+                    return False
+                
+                previous_end_time = ride[1]
+
+            return True
+
+
+        def can_user_complete_rides_with_conflicts(requested_rides):
+            """
+            Variation: Accepts ride requests as list of dicts and returns (bool, conflicting_ride_ids).
+            Each dict: {'id': int, 'start': int, 'end': int, 'type': str}
+            Returns (True/False, list_of_conflicting_ride_ids)
+            """
+            if not requested_rides:
+                return (True, [])
+            
+            conflict_ids = set()
+            sorted_rides = sorted(requested_rides, key=lambda x: x['start'])
+            
+            previous_end_time = 0
+            previous_ride = None
+            
+            for ride in sorted_rides:
+                if ride['start'] < previous_end_time:
+                    # Current ride conflicts with previous ride
+                    conflict_ids.add(ride['id'])
+                    if previous_ride:
+                        conflict_ids.add(previous_ride['id'])
+                
+                # Update previous_end_time to the maximum end time seen so far
+                if ride['end'] > previous_end_time:
+                    previous_end_time = ride['end']
+                    previous_ride = ride
+            
+            # Return (can_complete, conflicting_ids)
+            return (len(conflict_ids) == 0, sorted(list(conflict_ids)))
+
+        def get_ride_schedule_summary(requested_rides):
+            """
+            Bonus variation: Returns detailed scheduling information.
+            Input: List of dicts with {'id', 'start', 'end', 'type'}
+            Returns: Dict with scheduling analysis
+            """
+            if not requested_rides:
+                return {'can_complete': True, 'total_time': 0, 'conflicts': [], 'ride_count': 0}
+            
+            can_complete, conflicts = can_user_complete_rides_with_conflicts(requested_rides)
+            
+            total_time = sum(ride['end'] - ride['start'] for ride in requested_rides)
+            ride_types = {}
+            
+            for ride in requested_rides:
+                ride_type = ride.get('type', 'unknown')
+                ride_types[ride_type] = ride_types.get(ride_type, 0) + 1
+            
+            return {
+                'can_complete': can_complete,
+                'total_time': total_time,
+                'conflicts': conflicts,
+                'ride_count': len(requested_rides),
+                'ride_types': ride_types
+            }
+```
+
+# Question 12: DoorDash Restaurant Metrics - Product Sense & Data Modeling
+
+## Interview Focus Areas
+Based on the actual DoorDash interview experience, this section covers:
+1. **Metrics & Dimensions Definition** for restaurants
+2. **Deep Dive Analysis** when revenue/orders decline  
+3. **Visualization Design** for restaurant performance
+
+---
+
+## Data Model Schema
+
+The following ERD represents the core data model supporting DoorDash restaurant analytics with order batching capabilities:
+
+```mermaid
+erDiagram
+    %% Core Business Entities
+    fact_orders }o--|| dim_restaurants : placed_at
+    fact_orders }o--|| dim_customers : placed_by
+    fact_orders }o--|| dim_drivers : delivered_by
+    fact_orders }o--|| dim_date : ordered_on
+    
+    %% Order Batching - Key Addition
+    fact_delivery_batches }o--|| dim_drivers : assigned_to
+    fact_delivery_batches }o--|| dim_date : created_on
+    fact_orders }o--|| fact_delivery_batches : belongs_to_batch
+    
+    %% Restaurant Performance Aggregation
+    fact_restaurant_daily_metrics }o--|| dim_restaurants : aggregates_restaurant
+    fact_restaurant_daily_metrics }o--|| dim_date : aggregated_on
+
+    %% Core Tables
+    fact_orders {
+        bigint order_id PK
+        bigint restaurant_key FK
+        bigint customer_key FK
+        bigint driver_key FK
+        bigint date_key FK
+        bigint batch_id FK
+        timestamp order_placed_at
+        timestamp order_ready_at
+        timestamp pickup_completed_at
+        timestamp delivery_completed_at
+        decimal order_total_amount
+        decimal restaurant_revenue
+        decimal delivery_fee
+        decimal tip_amount
+        int prep_time_minutes
+        int delivery_time_minutes
+        boolean is_accurate_order
+        string order_status
+        decimal customer_lat
+        decimal customer_lng
+        json order_metadata
+    }
+
+    fact_delivery_batches {
+        bigint batch_id PK
+        bigint driver_key FK
+        bigint date_key FK
+        timestamp batch_created_at
+        timestamp batch_started_at
+        timestamp batch_completed_at
+        int total_orders_in_batch
+        int completed_orders
+        decimal total_batch_distance_miles
+        int total_batch_time_minutes
+        decimal batch_efficiency_score
+        string batch_status
+        decimal avg_delivery_time_per_order
+        boolean is_optimized_route
+        json batch_route_coordinates
+        json batch_metadata
+    }
+
+    fact_restaurant_daily_metrics {
+        bigint restaurant_key FK
+        bigint date_key FK
+        int total_orders
+        decimal total_revenue
+        decimal avg_order_value
+        decimal avg_prep_time_minutes
+        decimal order_accuracy_rate
+        int unique_customers
+        decimal conversion_rate
+        int orders_in_batches
+        decimal avg_batch_size_for_restaurant
+        decimal batch_delivery_efficiency
+        json daily_metrics_metadata
+    }
+
+    %% Core Dimensions
+    dim_restaurants {
+        bigint restaurant_key PK
+        string restaurant_id
+        string restaurant_name
+        string cuisine_type
+        string price_tier
+        string address
+        decimal restaurant_lat
+        decimal restaurant_lng
+        timestamp onboarding_date
+        boolean is_active
+        decimal avg_customer_rating
+        decimal avg_prep_time_minutes
+        json restaurant_attributes
+    }
+
+    dim_customers {
+        bigint customer_key PK
+        string customer_id
+        string customer_email
+        timestamp registration_date
+        boolean is_dashpass_member
+        boolean is_active
+        int total_lifetime_orders
+        decimal total_lifetime_value
+        string preferred_cuisine_type
+        json customer_attributes
+    }
+
+    dim_drivers {
+        bigint driver_key PK
+        string driver_id
+        string driver_name
+        timestamp onboarding_date
+        boolean is_active
+        decimal avg_customer_rating
+        int total_deliveries_completed
+        int total_batches_completed
+        decimal avg_batch_efficiency_score
+        boolean is_batch_eligible
+        string vehicle_type
+        json driver_attributes
+    }
+
+    dim_date {
+        bigint date_key PK
+        date date_value
+        int year
+        int month
+        int day_of_month
+        int day_of_week
+        string day_name
+        boolean is_weekend
+        boolean is_holiday
+        string day_part
+        boolean is_peak_hour
+        json date_attributes
+    }
+```
+
+### Key Batching Analytics Supported:
+
+#### Batch Performance Metrics:
+- **Batch Efficiency Score**: Orders delivered per hour in batch vs individual
+- **Route Optimization**: Actual vs optimal delivery route analysis
+- **Batch Fill Rate**: Average orders per batch by time/location
+- **Delivery Time Savings**: Batch vs individual delivery time comparison
+
+#### Restaurant Impact Analysis:
+- **Prep Time Coordination**: How batching affects kitchen timing
+- **Order Bundling Patterns**: Which restaurants get batched together
+- **Revenue per Batch**: Restaurant earnings from batched orders
+
+#### Driver Performance:
+- **Batch Completion Rate**: Successfully completed batches vs assigned
+- **Earnings Efficiency**: Driver earnings per hour with vs without batching
+- **Driver Batch Eligibility**: Performance metrics for batch assignment
+
+#### Customer Experience:
+- **Delivery Time Impact**: How batching affects customer delivery times
+- **Order Accuracy in Batches**: Quality maintenance across multiple pickups
+- **Customer Satisfaction**: Rating correlation with batched deliveries
+
+---
+
+## 1. Core Restaurant Metrics & Dimensions
+
+### Primary Metrics
+
+#### Revenue Metrics
+- **Restaurant Revenue**: Total revenue generated per restaurant
+- **Average Order Value (AOV)**: Revenue per order
+- **Revenue Per Available Hour**: Revenue efficiency during operating hours
+- **Commission Revenue**: DoorDash's take from restaurant orders
+
+#### Volume Metrics  
+- **Order Count**: Total orders per restaurant
+- **Order Frequency**: Orders per time period (daily/weekly/monthly)
+- **Order Conversion Rate**: Orders / Restaurant page views
+- **Repeat Order Rate**: Returning customer order percentage
+
+#### Operational Metrics
+- **Preparation Time**: Time from order receipt to pickup ready
+- **Pickup Success Rate**: % of orders picked up successfully
+- **Order Accuracy Rate**: % of orders delivered correctly
+- **Restaurant Availability**: % of operating hours actually accepting orders
+
+### Key Dimensions for Segmentation
+
+#### Restaurant Dimensions
+- **Cuisine Type**: (Italian, Chinese, Mexican, etc.)
+- **Restaurant Category**: (Fast food, casual dining, fine dining)
+- **Price Tier**: (Budget: $, Mid-range: $$, Premium: $$$)
+- **Restaurant Size**: (Number of menu items, seating capacity)
+- **Partnership Type**: (Marketplace, DashPass exclusive, etc.)
+
+#### Geographic Dimensions
+- **Market Tier**: (Tier 1, 2, 3 cities)
+- **Neighborhood Type**: (Urban, suburban, college area)
+- **Population Density**: (High, medium, low)
+- **Delivery Zone Size**: (Radius coverage area)
+
+#### Temporal Dimensions
+- **Day Part**: (Breakfast, lunch, dinner, late night)
+- **Day of Week**: (Weekday vs weekend patterns)
+- **Seasonality**: (Holiday periods, weather impacts)
+- **Restaurant Operating Hours**: (Peak vs off-peak)
+
+---
+
+## 2. Deep Dive Framework: Revenue/Order Decline Analysis
+
+### Step 1: Metric Decomposition
+```
+Revenue Decline = 
+  ↓ Order Volume × ↓ Average Order Value × ↓ Successful Completion Rate
+
+Order Volume Decline =
+  ↓ New Customers × ↓ Returning Customers × ↓ Order Frequency
+```
+
+### Step 2: Hypothesis Generation & Testing
+
+#### External Factors
+- **Competitive Pressure**: New competitors, promotional wars
+- **Seasonality**: Weather, holidays, local events
+- **Economic Factors**: Consumer spending, unemployment rates
+- **Operational Issues**: Driver shortages, delivery delays
+
+#### Internal Factors  
+- **Product Changes**: Menu updates, pricing changes, app modifications
+- **Restaurant Quality**: Food quality decline, poor ratings
+- **Service Issues**: Long wait times, delivery problems
+- **Marketing Changes**: Reduced advertising, promotion changes
+
+### Step 3: Data Analysis Approach
+
+#### Segmentation Analysis
+```sql
+-- Identify which restaurant segments are most affected
+SELECT 
+    cuisine_type,
+    price_tier,
+    market_tier,
+    SUM(revenue_current_period) / SUM(revenue_previous_period) - 1 as revenue_change_pct,
+    COUNT(DISTINCT restaurant_id) as restaurant_count
+FROM restaurant_performance
+GROUP BY cuisine_type, price_tier, market_tier
+ORDER BY revenue_change_pct
+```
+
+#### Cohort Analysis
+- Track restaurant performance by onboarding cohort
+- Analyze customer retention by restaurant over time
+- Compare new vs existing restaurant performance
+
+#### Funnel Analysis
+```
+Restaurant Page Views → Add to Cart → Checkout → Payment → Successful Delivery
+```
+
+### Step 4: Root Cause Investigation
+
+#### Data Points to Examine
+1. **Restaurant-Level Metrics**:
+   - Individual restaurant revenue trends
+   - Menu item performance changes
+   - Rating and review sentiment
+   - Operational metrics (prep time, accuracy)
+
+2. **Customer Behavior**:
+   - Order frequency changes by customer segment
+   - Cart abandonment rates
+   - Customer lifetime value trends
+   - Search and discovery patterns
+
+3. **Competitive Intelligence**:
+   - Market share changes
+   - Competitor pricing analysis
+   - New market entrants
+   - Promotional activity comparison
+
+---
+
+## 3. Visualization Design for Restaurant Performance
+
+### Executive Dashboard
+
+#### Top-Level KPIs (Card Layout)
+```
+┌─────────────────┬─────────────────┬─────────────────┬─────────────────┐
+│   Total Revenue │   Active Rest.  │   Avg Order Val │   Completion %  │
+│   $2.3M (+5%)   │   1,247 (-2%)   │   $23.50 (+8%) │   94.2% (-1%)   │
+└─────────────────┴─────────────────┴─────────────────┴─────────────────┘
+```
+
+#### Time Series Charts
+- **Revenue Trend**: Line chart with YoY comparison
+- **Order Volume**: Stacked area chart by restaurant category
+- **Performance Funnel**: Conversion rates at each step
+
+### Restaurant Deep Dive Dashboard
+
+#### Multi-Dimensional Analysis
+```
+Restaurant Performance Matrix:
+                 High Revenue              Low Revenue
+High Order Vol   ┌─ Star Performers ─┐   ┌─ High Vol, Low AOV ─┐
+                 │ Focus: Maintain   │   │ Focus: Pricing     │
+                 └───────────────────┘   └───────────────────┘
+
+Low Order Vol    ┌─ Premium Niche ───┐   ┌─ At Risk ─────────┐
+                 │ Focus: Scale Up   │   │ Focus: Intervention│
+                 └───────────────────┘   └───────────────────┘
+```
+
+#### Heatmap Visualizations
+- **Geographic Performance**: Map overlay with revenue density
+- **Time-based Patterns**: Hour-of-day vs day-of-week performance grid
+- **Menu Item Performance**: Revenue contribution by item category
+
+### Operational Dashboard
+
+#### Real-Time Monitoring
+- **Live Order Tracking**: Current orders in preparation/delivery
+- **Restaurant Status**: Online/offline status with capacity indicators
+- **Alert System**: Automated flags for performance issues
+
+#### Predictive Analytics
+- **Demand Forecasting**: Expected order volume by restaurant/time
+- **Capacity Planning**: Restaurant availability optimization
+- **Performance Alerts**: Early warning system for declining metrics
+
+### Interactive Features
+
+#### Filtering & Drill-Down
+- Multi-select filters: Cuisine type, price tier, geographic market
+- Click-through capability: Dashboard → Restaurant → Individual orders
+- Time period selection: Custom date ranges, period comparison
+
+#### Export & Sharing
+- Scheduled reports: Weekly/monthly performance summaries
+- Custom views: Saved filter combinations for different stakeholders
+- Data export: CSV/Excel for detailed analysis
+
+---
+
+## 4. Implementation Considerations
+
+### Data Requirements
+- **Real-time data**: Order status, restaurant availability
+- **Historical data**: 2+ years for trend analysis and seasonality
+- **External data**: Weather, events, competitor information
+
+### Stakeholder Alignment
+- **Restaurant Partners**: Focus on actionable insights for improvement
+- **Operations Teams**: Emphasize efficiency and troubleshooting
+- **Executive Leadership**: High-level trends and strategic insights
+
+### Success Metrics for Visualizations
+- **Adoption Rate**: % of stakeholders using dashboards regularly
+- **Time to Insight**: How quickly users can identify issues
+- **Action Frequency**: Number of decisions driven by dashboard insights
+- **Performance Impact**: Measurable improvements in restaurant metrics 
+
+# Scenario 9: Food Delivery (DoorDash) - Order Batching
+
+### Question 9.1.1: Batch Order Optimization
+
+**Interviewer:** "How would you measure the success of a new order batching algorithm for a food delivery platform? What metrics would you track from the customer, driver, and platform perspectives?"
+
+**Candidate Answer (Structured Bullet Points):**
+
+"Measuring the success of a new order batching algorithm requires a holistic approach, looking at its impact on all three key stakeholders: customers, drivers, and the platform. I'd break it down like this:
+
+**I. Customer Perspective (Focus: Experience & Satisfaction)**
+    *   **Primary Goal:** Ensure batching doesn't significantly degrade the customer experience.
+    *   **Key Metrics:**
+        *   **Delivery Time & Reliability:**
+            *   **Actual Delivery Time:** Compare batched vs. non-batched orders (controlling for variables like distance, restaurant prep time).
+                *   *Critical Question:* Is there a statistically significant increase in delivery time for batched orders?
+            *   **ETA Accuracy:** `(Actual Delivery Time - Predicted ETA)`.
+                *   *Critical Question:* Does batching make ETAs less reliable or consistently longer than predicted?
+        *   **Food Quality:**
+            *   **Food Temperature/Condition Complaints:** Track customer complaints or refund requests specifically mentioning cold food or poor condition for batched orders.
+            *   **CSAT on Food Quality (Post-Delivery Survey):** Segment for batched orders.
+        *   **Order Accuracy:**
+            *   **Incorrect Order Rate:** Compare for batched vs. non-batched.
+                *   *Critical Question:* Does batching lead to a higher incidence of wrong items or missing orders?
+        *   **Overall Satisfaction:**
+            *   **Overall CSAT/NPS:** Segment for users who frequently receive batched orders.
+            *   **Customer Retention for Batched Order Recipients:** Are users who often get batched orders churning at a higher rate?
+
+**II. Driver Perspective (Focus: Earnings & Efficiency)**
+    *   **Primary Goal:** Ensure drivers benefit from or are not negatively impacted by batching.
+    *   **Key Metrics:**
+        *   **Earnings & Efficiency:**
+            *   **Driver Earnings per Hour (or Per Trip):** This is paramount. Ideally, batching increases this.
+            *   **Deliveries per Hour:** Should increase with efficient batching.
+            *   **Mileage per Delivery (or Per Dollar Earned):** Efficient batching should optimize routes and reduce unproductive mileage.
+        *   **Operational Experience:**
+            *   **Reduced Downtime/Idle Time:** Time spent waiting at restaurants or between offers. Batching aims to minimize this.
+            *   **Batch Offer Acceptance Rate:** Low acceptance might indicate issues with pay for batched offers, route complexity, or perceived fairness.
+            *   **Time per Batch (Pickup to Last Dropoff):** Is the complexity of managing multiple orders manageable?
+        *   **Overall Satisfaction:**
+            *   **Driver Satisfaction (DSAT) Surveys:** Specifically ask about the batching experience (e.g., clarity of instructions, fairness of compensation, ease of handling multiple orders).
+            *   **Driver Churn Rate (for drivers frequently assigned batches).**
+
+**III. Platform Perspective (Focus: Economics & Marketplace Health)**
+    *   **Primary Goal:** Improve overall system efficiency and profitability while maintaining a healthy marketplace.
+    *   **Key Metrics:**
+        *   **Economic Efficiency:**
+            *   **Logistics Cost per Order:** This is a primary driver for implementing batching. Expect a decrease.
+            *   **Driver Utilization Rate:** `(Time spent on active deliveries) / (Total online time)`. Batching should improve this.
+        *   **Batching Algorithm Performance:**
+            *   **Average Batch Size (Orders per Batch):** Is the algorithm effectively creating batches?
+            *   **Percentage of Orders Batched:** What proportion of eligible orders are successfully batched?
+            *   **Algorithm Computation Time & Scalability:** Can the algorithm handle peak load efficiently?
+        *   **Marketplace Health:**
+            *   **Overall Order Fulfillment Rate:** Ensure batching doesn't lead to more unfulfilled orders.
+            *   **Customer Cancellations (due to long ETAs, potentially from batching):** Monitor this closely.
+            *   **Restaurant Satisfaction:** Are restaurants experiencing issues with batched pickups (e.g., drivers waiting for multiple orders, congestion)?
+        *   **Revenue & Growth:**
+            *   **Impact on Total Order Volume:** Does improved efficiency lead to capacity for more orders?
+            *   **Potential for Reduced Delivery Fees (Long-term):** Can cost savings be passed to customers to stimulate demand?
+
+**Crucial Cross-Cutting Considerations:**
+*   **A/B Testing:** This is absolutely essential. The new algorithm must be rigorously tested against the old one (or a control group without batching/with simpler batching) using key metrics from all three perspectives as primary success metrics and guardrail metrics.
+*   **Guardrail Metrics:** For each perspective, establish critical thresholds that should not be breached. For example:
+    *   Customer: Average delivery time increase < X minutes.
+    *   Driver: Earnings per hour decrease < Y%.
+    *   Platform: Order fulfillment rate drop < Z%.
+*   **Segmentation:** Analyze all metrics by time of day, day of week, geography, restaurant type, etc., as batching effectiveness can vary significantly.
+*   **Transparency:** Consider the impact of informing customers and drivers about batching. A/B test different levels of transparency and their effect on satisfaction and behavior.
+
+My overall approach would be to iterate. Launch, measure these key areas, identify where the new algorithm is excelling or falling short, and then refine it. The ideal batching algorithm finds a sweet spot that creates a win-win-win situation."
+
+**Additional Explanations & Perspectives:**
+*   **Guardrail Metrics:** For each perspective, establish critical thresholds that should not be breached. For instance, customer delivery time should not increase by more than X minutes on average, or driver earnings per hour should not fall below Y.
+
+
+```python
+
+def can_vehicle_complete_rides_with_capacity(ride_segments, max_capacity):
+    """
+    Checks if a list of ride segments can be completed by a single vehicle 
+    without exceeding its maximum passenger capacity.
+    
+    Uses a sweep line algorithm to process pickup and dropoff events in chronological order.
+    """
+
+    if not ride_segments or max_capacity<=0:
+        return False
+    
+
+    # go through the ride segments and turn it into pick up and drop off 
+
+    all_rides =[]
+    for ride in ride_segments:
+        all_rides.append(ride[0],"pickup",ride[2])
+        all_rides.append(ride[1],"dropoff",ride[2])
+
+    
+    sorted_rides = sorted(all_rides,key = lambda x: (x[0], 0 if x[1]=="dropoff" else 1))
+
+    current_capacity= 0
+    for action in sorted_rides:
+        if action[1]=="pickup":
+            current_capacity+=action[2]
+        elif action[1]=="dropoff":
+            current_capacity-=action[2]
+
+        if current_capacity>max_capacity:
+            return False
+        
+    return True
+
+```
 
 # Scenario 2: Short Video (TikTok/Reels) - Sharing Focus
 
@@ -1093,6 +1786,77 @@ fact_viewing_events {
 
 This allows detailed reconstruction of the viewing session when needed, while keeping the main fact table optimized for aggregate queries.
 
+
+```sql
+WITH DailyUserViewSummary AS (
+    -- Calculates daily aggregates for users from fact_viewing_sessions_streaming
+    -- for a specific processing date (e.g., yesterday).
+    SELECT
+        fvs.user_key,
+        SUM(fvs.view_duration_seconds) AS daily_total_view_time,
+        COUNT(DISTINCT fvs.session_guid) AS daily_sessions_count,
+        d.calendar_date AS processing_calendar_date -- The actual date of the data being processed
+    FROM
+        fact_viewing_sessions_streaming fvs
+    JOIN
+        dim_date d ON fvs.date_key = d.date_key
+    WHERE
+        -- This condition ensures only the delta for the specified date is processed.
+        -- Replace with a specific date string like '''YYYY-MM-DD''' for fixed date processing if needed.
+        d.calendar_date = (CURRENT_DATE - INTERVAL '''1 day''')
+    GROUP BY
+        fvs.user_key, d.calendar_date
+),
+CurrentSnapshot AS (
+    -- Represents the current state of the user_cumulative_snapshot table.
+    -- This CTE is used to clearly separate the existing snapshot data.
+    SELECT
+        user_key,
+        total_view_time_seconds,
+        last_updated_date,
+        first_active_date,
+        last_active_date,
+        total_sessions_count
+    FROM
+        user_cumulative_snapshot -- This is the table we are conceptually updating
+)
+-- 2. Merge daily summary with current snapshot using FULL OUTER JOIN and COALESCE.
+-- The SELECT statement below constructs the "new" state of the user_cumulative_snapshot.
+-- In a batch update process, you might use this SELECT to repopulate the table
+-- or use similar logic in an INSERT/UPDATE statement if the RDBMS doesn'''t support MERGE
+-- or if a MERGE is not desired.
+SELECT
+    -- User Key: from snapshot or delta if new
+    COALESCE(cs.user_key, dus.user_key) AS user_key,
+
+    -- Total View Time: sum of existing (or 0 if new) and new daily view time (or 0 if no new activity)
+    COALESCE(cs.total_view_time_seconds, 0) + COALESCE(dus.daily_total_view_time, 0) AS total_view_time_seconds,
+
+    -- Last Updated Date:
+    -- If user has new activity (in dus), it'''s the processing_calendar_date.
+    -- Else (user only in cs, no new activity), it'''s their existing last_updated_date.
+    COALESCE(dus.processing_calendar_date, cs.last_updated_date) AS last_updated_date,
+
+    -- First Active Date:
+    -- If user existed (in cs), keep their original first_active_date.
+    -- Else (new user, only in dus), it'''s the processing_calendar_date.
+    COALESCE(cs.first_active_date, dus.processing_calendar_date) AS first_active_date,
+
+    -- Last Active Date:
+    -- If user has new activity (in dus), it'''s the processing_calendar_date.
+    -- Else (user only in cs, no new activity), it'''s their existing last_active_date.
+    COALESCE(dus.processing_calendar_date, cs.last_active_date) AS last_active_date,
+
+    -- Total Sessions Count: sum of existing (or 0 if new) and new daily sessions (or 0 if no new activity)
+    COALESCE(cs.total_sessions_count, 0) + COALESCE(dus.daily_sessions_count, 0) AS total_sessions_count
+FROM
+    CurrentSnapshot cs
+FULL OUTER JOIN
+    DailyUserViewSummary dus ON cs.user_key = dus.user_key
+;
+
+
+```
 ### Trade-offs and Considerations
 
 1. **Granularity vs. Storage**:
@@ -1824,80 +2588,7 @@ Churn risk is often indicated by a *decline* in previously established engagemen
 
 By combining these metrics and analytical approaches, a messaging platform can gain deep insights into how users engage, identify who is thriving and who is drifting away, and ultimately take steps to improve user retention and overall platform health.
 
-# Scenario 9: Food Delivery (DoorDash) - Order Batching
 
-### Question 9.1.1: Batch Order Optimization
-
-**Interviewer:** "How would you measure the success of a new order batching algorithm for a food delivery platform? What metrics would you track from the customer, driver, and platform perspectives?"
-
-**Candidate Answer (Structured Bullet Points):**
-
-"Measuring the success of a new order batching algorithm requires a holistic approach, looking at its impact on all three key stakeholders: customers, drivers, and the platform. I'd break it down like this:
-
-**I. Customer Perspective (Focus: Experience & Satisfaction)**
-    *   **Primary Goal:** Ensure batching doesn't significantly degrade the customer experience.
-    *   **Key Metrics:**
-        *   **Delivery Time & Reliability:**
-            *   **Actual Delivery Time:** Compare batched vs. non-batched orders (controlling for variables like distance, restaurant prep time).
-                *   *Critical Question:* Is there a statistically significant increase in delivery time for batched orders?
-            *   **ETA Accuracy:** `(Actual Delivery Time - Predicted ETA)`.
-                *   *Critical Question:* Does batching make ETAs less reliable or consistently longer than predicted?
-        *   **Food Quality:**
-            *   **Food Temperature/Condition Complaints:** Track customer complaints or refund requests specifically mentioning cold food or poor condition for batched orders.
-            *   **CSAT on Food Quality (Post-Delivery Survey):** Segment for batched orders.
-        *   **Order Accuracy:**
-            *   **Incorrect Order Rate:** Compare for batched vs. non-batched.
-                *   *Critical Question:* Does batching lead to a higher incidence of wrong items or missing orders?
-        *   **Overall Satisfaction:**
-            *   **Overall CSAT/NPS:** Segment for users who frequently receive batched orders.
-            *   **Customer Retention for Batched Order Recipients:** Are users who often get batched orders churning at a higher rate?
-
-**II. Driver Perspective (Focus: Earnings & Efficiency)**
-    *   **Primary Goal:** Ensure drivers benefit from or are not negatively impacted by batching.
-    *   **Key Metrics:**
-        *   **Earnings & Efficiency:**
-            *   **Driver Earnings per Hour (or Per Trip):** This is paramount. Ideally, batching increases this.
-            *   **Deliveries per Hour:** Should increase with efficient batching.
-            *   **Mileage per Delivery (or Per Dollar Earned):** Efficient batching should optimize routes and reduce unproductive mileage.
-        *   **Operational Experience:**
-            *   **Reduced Downtime/Idle Time:** Time spent waiting at restaurants or between offers. Batching aims to minimize this.
-            *   **Batch Offer Acceptance Rate:** Low acceptance might indicate issues with pay for batched offers, route complexity, or perceived fairness.
-            *   **Time per Batch (Pickup to Last Dropoff):** Is the complexity of managing multiple orders manageable?
-        *   **Overall Satisfaction:**
-            *   **Driver Satisfaction (DSAT) Surveys:** Specifically ask about the batching experience (e.g., clarity of instructions, fairness of compensation, ease of handling multiple orders).
-            *   **Driver Churn Rate (for drivers frequently assigned batches).**
-
-**III. Platform Perspective (Focus: Economics & Marketplace Health)**
-    *   **Primary Goal:** Improve overall system efficiency and profitability while maintaining a healthy marketplace.
-    *   **Key Metrics:**
-        *   **Economic Efficiency:**
-            *   **Logistics Cost per Order:** This is a primary driver for implementing batching. Expect a decrease.
-            *   **Driver Utilization Rate:** `(Time spent on active deliveries) / (Total online time)`. Batching should improve this.
-        *   **Batching Algorithm Performance:**
-            *   **Average Batch Size (Orders per Batch):** Is the algorithm effectively creating batches?
-            *   **Percentage of Orders Batched:** What proportion of eligible orders are successfully batched?
-            *   **Algorithm Computation Time & Scalability:** Can the algorithm handle peak load efficiently?
-        *   **Marketplace Health:**
-            *   **Overall Order Fulfillment Rate:** Ensure batching doesn't lead to more unfulfilled orders.
-            *   **Customer Cancellations (due to long ETAs, potentially from batching):** Monitor this closely.
-            *   **Restaurant Satisfaction:** Are restaurants experiencing issues with batched pickups (e.g., drivers waiting for multiple orders, congestion)?
-        *   **Revenue & Growth:**
-            *   **Impact on Total Order Volume:** Does improved efficiency lead to capacity for more orders?
-            *   **Potential for Reduced Delivery Fees (Long-term):** Can cost savings be passed to customers to stimulate demand?
-
-**Crucial Cross-Cutting Considerations:**
-*   **A/B Testing:** This is absolutely essential. The new algorithm must be rigorously tested against the old one (or a control group without batching/with simpler batching) using key metrics from all three perspectives as primary success metrics and guardrail metrics.
-*   **Guardrail Metrics:** For each perspective, establish critical thresholds that should not be breached. For example:
-    *   Customer: Average delivery time increase < X minutes.
-    *   Driver: Earnings per hour decrease < Y%.
-    *   Platform: Order fulfillment rate drop < Z%.
-*   **Segmentation:** Analyze all metrics by time of day, day of week, geography, restaurant type, etc., as batching effectiveness can vary significantly.
-*   **Transparency:** Consider the impact of informing customers and drivers about batching. A/B test different levels of transparency and their effect on satisfaction and behavior.
-
-My overall approach would be to iterate. Launch, measure these key areas, identify where the new algorithm is excelling or falling short, and then refine it. The ideal batching algorithm finds a sweet spot that creates a win-win-win situation."
-
-**Additional Explanations & Perspectives:**
-*   **Guardrail Metrics:** For each perspective, establish critical thresholds that should not be breached. For instance, customer delivery time should not increase by more than X minutes on average, or driver earnings per hour should not fall below Y.
 
 # Scenario 10: Social Media Platform (Meta) - Friends Follow & Recommendation (PYMK)
 

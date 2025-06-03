@@ -141,22 +141,112 @@ The batching system extends the core delivery model by:
 
 ```mermaid
 erDiagram
-    %% Core DoorDash Tables
-    fact_orders ||--|| fact_deliveries : has_delivery
-    fact_deliveries }o--|| dim_drivers : assigned_to
-    fact_orders }o--|| dim_restaurants : ordered_from
-    fact_orders }o--|| dim_customers : placed_by
+    %% ================ Dimensions ================
+    dim_couriers {
+        bigint courier_id PK
+        string vehicle_type
+        string home_zone
+        timestamp onboarded_ts
+    }
+
+    dim_stores {
+        bigint store_id PK
+        bigint city_id
+        string store_name
+        interval prep_time_avg_mins
+    }
+
+    %% ================ Parent fact (one physical route) ================
+    fact_delivery_trip {
+        bigint delivery_trip_id PK
+        bigint courier_id FK
+        bigint primary_store_id FK
+        timestamp pickup_ts
+        timestamp dropoff_ts
+        decimal route_distance_km
+        timestamp promised_eta_max_ts
+        string trip_status
+    }
+
+    fact_trip_status_events {
+        bigint trip_status_event_id PK
+        bigint delivery_trip_id FK
+        string trip_status
+        timestamp event_ts
+    }
+
+    %% ================ Child fact: ordered stops along the route =======
+    fact_trip_stops {
+        bigint stop_id PK
+        bigint delivery_trip_id FK
+        int route_seq
+        string stop_type
+        decimal lat
+        decimal lon
+        timestamp actual_arrival_ts
+        timestamp actual_depart_ts
+    }
+
+    %% ================ Bridge table (many orders per stop = per trip) ==
+    bridge_order_stop {
+        bigint order_id PK
+        bigint pickup_stop_id FK
+        bigint dropoff_stop_id FK
+    }
+
+    %% ================ Order-level facts ===============================
+    fact_orders {
+        bigint order_id PK
+        bigint store_id FK
+        bigint courier_id FK
+        bigint delivery_trip_id FK
+        decimal subtotal_usd
+        timestamp promised_eta_ts
+        timestamp delivered_ts
+        string order_status
+        timestamp created_ts
+    }
+
+    fact_order_items {
+        bigint order_item_id PK
+        bigint order_id FK
+        bigint item_id
+        int qty
+        decimal price_usd
+    }
+
+    fact_status_events {
+        bigint status_event_id PK
+        bigint order_id FK
+        string order_status
+        timestamp event_ts
+    }
+
+    fact_tip_events {
+        bigint tip_event_id PK
+        bigint order_id FK
+        decimal tip_usd
+        timestamp event_ts
+    }
+
+    %% ================ Relationships ===============================
+    dim_couriers ||--o{ fact_delivery_trip : drives
+    dim_stores ||--o{ fact_delivery_trip : primary_pickup
     
-    %% Batching Extension Tables
-    fact_deliveries }o--o| fact_delivery_batches : grouped_into
-    fact_delivery_batches ||--o{ fact_batch_deliveries : contains
-    fact_delivery_batches }o--|| dim_batching_algorithms : created_by
-    fact_delivery_batches ||--o{ fact_batch_waypoints : has_waypoints
-    fact_delivery_batches ||--o{ fact_batch_state_changes : tracks_states
+    fact_delivery_trip ||--o{ fact_trip_stops : has_stops
+    fact_delivery_trip ||--o{ fact_trip_status_events : has_status_events
     
-    %% Batch Performance Tables
-    fact_batch_deliveries }o--|| fact_deliveries : extends
-    fact_batch_deliveries ||--o{ fact_batch_delivery_events : has_events
+    fact_trip_stops ||--o{ bridge_order_stop : pickup_stop
+    fact_trip_stops ||--o{ bridge_order_stop : dropoff_stop
+    
+    bridge_order_stop ||--|| fact_orders : includes_order
+    
+    fact_orders ||--o{ fact_order_items : contains_items
+    fact_orders ||--o{ fact_status_events : has_status_log
+    fact_orders ||--o{ fact_tip_events : has_tip_log
+    
+    dim_stores ||--o{ fact_orders : placed_at
+    dim_couriers ||--o{ fact_orders : delivers
 ```
 
 ### Core Batching Tables
@@ -727,4 +817,117 @@ ORDER BY fast_batch_pickup_rate_pct DESC;
 - Customer satisfaction impact analysis
 - Revenue and efficiency optimization insights
 
+### 5. ERD
+
 This integrated model provides DoorDash with a comprehensive view of their delivery operations while enabling sophisticated optimization of their batching algorithms and overall delivery efficiency. 
+
+```mermaid
+erDiagram
+    %% ================ Dimensions ================
+    dim_couriers {
+        bigint courier_id PK
+        string vehicle_type
+        string home_zone
+        timestamp onboarded_ts
+    }
+
+    dim_stores {
+        bigint store_id PK
+        bigint city_id
+        string store_name
+        interval prep_time_avg_mins
+    }
+
+    %% ================ Parent fact (one physical route) ================
+    fact_delivery_trip {
+        bigint delivery_trip_id PK
+        bigint courier_id FK
+        bigint primary_store_id FK
+        timestamp pickup_ts
+        timestamp dropoff_ts
+        decimal route_distance_km
+        timestamp promised_eta_max_ts
+        string trip_status
+    }
+
+    fact_trip_status_events {
+        bigint trip_status_event_id PK
+        bigint delivery_trip_id FK
+        string trip_status
+        timestamp event_ts
+    }
+
+    %% ================ Child fact: ordered stops along the route =======
+    fact_trip_stops {
+        bigint stop_id PK
+        bigint delivery_trip_id FK
+        int route_seq
+        string stop_type
+        decimal lat
+        decimal lon
+        timestamp actual_arrival_ts
+        timestamp actual_depart_ts
+    }
+
+    %% ================ Bridge table (many orders per stop = per trip) ==
+    bridge_order_stop {
+        bigint order_id PK
+        bigint pickup_stop_id FK
+        bigint dropoff_stop_id FK
+    }
+
+    %% ================ Order-level facts ===============================
+    fact_orders {
+        bigint order_id PK
+        bigint store_id FK
+        bigint courier_id FK
+        bigint delivery_trip_id FK
+        decimal subtotal_usd
+        timestamp promised_eta_ts
+        timestamp delivered_ts
+        string order_status
+        timestamp created_ts
+    }
+
+    fact_order_items {
+        bigint order_item_id PK
+        bigint order_id FK
+        bigint item_id
+        int qty
+        decimal price_usd
+    }
+
+    fact_status_events {
+        bigint status_event_id PK
+        bigint order_id FK
+        string order_status
+        timestamp event_ts
+    }
+
+    fact_tip_events {
+        bigint tip_event_id PK
+        bigint order_id FK
+        decimal tip_usd
+        timestamp event_ts
+    }
+
+    %% ================ Relationships ===============================
+    dim_couriers ||--o{ fact_delivery_trip : drives
+    dim_stores ||--o{ fact_delivery_trip : primary_pickup
+    
+    fact_delivery_trip ||--o{ fact_trip_stops : has_stops
+    fact_delivery_trip ||--o{ fact_trip_status_events : has_status_events
+    
+    fact_trip_stops ||--o{ bridge_order_stop : pickup_stop
+    fact_trip_stops ||--o{ bridge_order_stop : dropoff_stop
+    
+    bridge_order_stop ||--|| fact_orders : includes_order
+    
+    fact_orders ||--o{ fact_order_items : contains_items
+    fact_orders ||--o{ fact_status_events : has_status_log
+    fact_orders ||--o{ fact_tip_events : has_tip_log
+    
+    dim_stores ||--o{ fact_orders : placed_at
+    dim_couriers ||--o{ fact_orders : delivers
+```
+

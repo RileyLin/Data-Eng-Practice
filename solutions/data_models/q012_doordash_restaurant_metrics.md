@@ -8,6 +8,173 @@ Based on the actual DoorDash interview experience, this section covers:
 
 ---
 
+## Data Model Schema
+
+The following ERD represents the core data model supporting DoorDash restaurant analytics with order batching capabilities:
+
+```mermaid
+erDiagram
+    %% Core Business Entities
+    fact_orders }o--|| dim_restaurants : placed_at
+    fact_orders }o--|| dim_customers : placed_by
+    fact_orders }o--|| dim_drivers : delivered_by
+    fact_orders }o--|| dim_date : ordered_on
+    
+    %% Order Batching - Key Addition
+    fact_delivery_batches }o--|| dim_drivers : assigned_to
+    fact_delivery_batches }o--|| dim_date : created_on
+    fact_orders }o--|| fact_delivery_batches : belongs_to_batch
+    
+    %% Restaurant Performance Aggregation
+    fact_restaurant_daily_metrics }o--|| dim_restaurants : aggregates_restaurant
+    fact_restaurant_daily_metrics }o--|| dim_date : aggregated_on
+
+    %% Core Tables
+    fact_orders {
+        bigint order_id PK
+        bigint restaurant_key FK
+        bigint customer_key FK
+        bigint driver_key FK
+        bigint date_key FK
+        bigint batch_id FK
+        timestamp order_placed_at
+        timestamp order_ready_at
+        timestamp pickup_completed_at
+        timestamp delivery_completed_at
+        decimal order_total_amount
+        decimal restaurant_revenue
+        decimal delivery_fee
+        decimal tip_amount
+        int prep_time_minutes
+        int delivery_time_minutes
+        boolean is_accurate_order
+        string order_status
+        decimal customer_lat
+        decimal customer_lng
+        json order_metadata
+    }
+
+    fact_delivery_batches {
+        bigint batch_id PK
+        bigint driver_key FK
+        bigint date_key FK
+        timestamp batch_created_at
+        timestamp batch_started_at
+        timestamp batch_completed_at
+        int total_orders_in_batch
+        int completed_orders
+        decimal total_batch_distance_miles
+        int total_batch_time_minutes
+        decimal batch_efficiency_score
+        string batch_status
+        decimal avg_delivery_time_per_order
+        boolean is_optimized_route
+        json batch_route_coordinates
+        json batch_metadata
+    }
+
+    fact_restaurant_daily_metrics {
+        bigint restaurant_key FK
+        bigint date_key FK
+        int total_orders
+        decimal total_revenue
+        decimal avg_order_value
+        decimal avg_prep_time_minutes
+        decimal order_accuracy_rate
+        int unique_customers
+        decimal conversion_rate
+        int orders_in_batches
+        decimal avg_batch_size_for_restaurant
+        decimal batch_delivery_efficiency
+        json daily_metrics_metadata
+    }
+
+    %% Core Dimensions
+    dim_restaurants {
+        bigint restaurant_key PK
+        string restaurant_id
+        string restaurant_name
+        string cuisine_type
+        string price_tier
+        string address
+        decimal restaurant_lat
+        decimal restaurant_lng
+        timestamp onboarding_date
+        boolean is_active
+        decimal avg_customer_rating
+        decimal avg_prep_time_minutes
+        json restaurant_attributes
+    }
+
+    dim_customers {
+        bigint customer_key PK
+        string customer_id
+        string customer_email
+        timestamp registration_date
+        boolean is_dashpass_member
+        boolean is_active
+        int total_lifetime_orders
+        decimal total_lifetime_value
+        string preferred_cuisine_type
+        json customer_attributes
+    }
+
+    dim_drivers {
+        bigint driver_key PK
+        string driver_id
+        string driver_name
+        timestamp onboarding_date
+        boolean is_active
+        decimal avg_customer_rating
+        int total_deliveries_completed
+        int total_batches_completed
+        decimal avg_batch_efficiency_score
+        boolean is_batch_eligible
+        string vehicle_type
+        json driver_attributes
+    }
+
+    dim_date {
+        bigint date_key PK
+        date date_value
+        int year
+        int month
+        int day_of_month
+        int day_of_week
+        string day_name
+        boolean is_weekend
+        boolean is_holiday
+        string day_part
+        boolean is_peak_hour
+        json date_attributes
+    }
+```
+
+### Key Batching Analytics Supported:
+
+#### Batch Performance Metrics:
+- **Batch Efficiency Score**: Orders delivered per hour in batch vs individual
+- **Route Optimization**: Actual vs optimal delivery route analysis
+- **Batch Fill Rate**: Average orders per batch by time/location
+- **Delivery Time Savings**: Batch vs individual delivery time comparison
+
+#### Restaurant Impact Analysis:
+- **Prep Time Coordination**: How batching affects kitchen timing
+- **Order Bundling Patterns**: Which restaurants get batched together
+- **Revenue per Batch**: Restaurant earnings from batched orders
+
+#### Driver Performance:
+- **Batch Completion Rate**: Successfully completed batches vs assigned
+- **Earnings Efficiency**: Driver earnings per hour with vs without batching
+- **Driver Batch Eligibility**: Performance metrics for batch assignment
+
+#### Customer Experience:
+- **Delivery Time Impact**: How batching affects customer delivery times
+- **Order Accuracy in Batches**: Quality maintenance across multiple pickups
+- **Customer Satisfaction**: Rating correlation with batched deliveries
+
+---
+
 ## 1. Core Restaurant Metrics & Dimensions
 
 ### Primary Metrics

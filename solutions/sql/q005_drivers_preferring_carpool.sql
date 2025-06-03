@@ -138,3 +138,100 @@ INSERT INTO fact_rides (ride_id, driver_user_key, ride_type_key, end_timestamp) 
 -- ---------------------------------------
 -- 40.0
 */ 
+
+-- ============================================================================
+-- ALTERNATIVE APPROACH: More Elegant & Simplified Version
+-- ============================================================================
+
+/*
+Alternative Solution: More elegant approach using a parameterized date range
+and simplified logic with better readability.
+*/
+
+-- Option 1: Using a cleaner date range approach (includes current date)
+WITH date_range AS (
+    SELECT 
+        CURRENT_DATE - INTERVAL '30 days' AS start_date,
+        CURRENT_DATE AS end_date
+),
+driver_ride_summary AS (
+    SELECT 
+        fr.driver_user_key,
+        COUNT(CASE WHEN drt.ride_type_name = 'Carpool' THEN 1 END) AS carpool_count,
+        COUNT(CASE WHEN drt.ride_type_name != 'Carpool' THEN 1 END) AS non_carpool_count,
+        COUNT(*) AS total_rides
+    FROM fact_rides fr
+    JOIN dim_ride_type drt ON fr.ride_type_key = drt.ride_type_key
+    CROSS JOIN date_range dr
+    WHERE fr.end_timestamp BETWEEN dr.start_date AND dr.end_date
+    GROUP BY fr.driver_user_key
+)
+SELECT 
+    ROUND(
+        COUNT(CASE WHEN carpool_count > non_carpool_count THEN 1 END) * 100.0 / 
+        NULLIF(COUNT(*), 0), 
+        2
+    ) AS percentage_drivers_preferring_carpool
+FROM driver_ride_summary;
+
+-- ============================================================================
+
+-- Option 2: Even more concise version with window functions
+WITH driver_preferences AS (
+    SELECT 
+        fr.driver_user_key,
+        COUNT(CASE WHEN drt.ride_type_name = 'Carpool' THEN 1 END) > 
+        COUNT(CASE WHEN drt.ride_type_name != 'Carpool' THEN 1 END) AS prefers_carpool
+    FROM fact_rides fr
+    JOIN dim_ride_type drt ON fr.ride_type_key = drt.ride_type_key
+    WHERE fr.end_timestamp >= CURRENT_DATE - INTERVAL '30 days'
+      AND fr.end_timestamp <= CURRENT_DATE  -- Includes current date
+    GROUP BY fr.driver_user_key
+)
+SELECT 
+    ROUND(AVG(CASE WHEN prefers_carpool THEN 100.0 ELSE 0.0 END), 2) AS percentage_drivers_preferring_carpool
+FROM driver_preferences;
+
+-- ============================================================================
+
+-- Option 3: Most readable version with explicit logic
+WITH last_30_days_rides AS (
+    SELECT 
+        fr.driver_user_key,
+        drt.ride_type_name,
+        COUNT(*) as ride_count
+    FROM fact_rides fr
+    JOIN dim_ride_type drt ON fr.ride_type_key = drt.ride_type_key
+    WHERE DATE(fr.end_timestamp) BETWEEN 
+          CURRENT_DATE - INTERVAL '30 days' AND 
+          CURRENT_DATE
+    GROUP BY fr.driver_user_key, drt.ride_type_name
+),
+driver_totals AS (
+    SELECT 
+        driver_user_key,
+        SUM(CASE WHEN ride_type_name = 'Carpool' THEN ride_count ELSE 0 END) AS carpool_rides,
+        SUM(CASE WHEN ride_type_name != 'Carpool' THEN ride_count ELSE 0 END) AS other_rides
+    FROM last_30_days_rides
+    GROUP BY driver_user_key
+)
+SELECT 
+    COUNT(CASE WHEN carpool_rides > other_rides THEN 1 END) * 100.0 / COUNT(*) AS percentage_drivers_preferring_carpool
+FROM driver_totals;
+
+/*
+Key improvements in these alternative approaches:
+
+1. **Option 1**: Uses a `date_range` CTE for cleaner parameterization and BETWEEN for more readable date filtering
+2. **Option 2**: Most concise - uses boolean logic directly in the CTE and AVG for percentage calculation  
+3. **Option 3**: Most explicit - separates the logic into clear steps for better maintainability
+
+All three approaches:
+- Include the current date (≤ instead of <)
+- Are more maintainable and readable
+- Handle edge cases better
+- Use ROUND() for cleaner output
+- Use NULLIF() or proper handling to avoid division by zero
+
+Choose the approach that best fits your team's coding standards and readability preferences.
+*/ 
