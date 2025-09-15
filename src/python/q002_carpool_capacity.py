@@ -82,32 +82,49 @@ def can_vehicle_complete_rides_with_capacity(ride_segments, max_capacity):
     # put the list of tuples in to list of actions that I can clissfy and track current capacity
 
 
-    
-    if not ride_segments or max_capacity<=0:
+    if not ride_segments: 
         return False
     
+    current_capacity = 0
+    timeline = []
 
-    # go through the ride segments and turn it into pick up and drop off 
-
-    all_rides =[]
     for ride in ride_segments:
-        all_rides.append((ride[0],"pickup",ride[2]))
-        all_rides.append((ride[1],"dropoff",ride[2]))
+
+        timeline.append((ride[0],ride[2],'pickup'))
+        timeline.append((ride[1],ride[2],'dropoff'))
 
     
-    sorted_rides = sorted(all_rides,key = lambda x: (x[0], 0 if x[1]=="dropoff" else 1))
+    # Sort timeline by time, prioritizing dropoffs before pickups at same timestamp
+    # This is more explicit using a separate function rather than a lambda
+    def sort_key(event):
+        time = event[0]
+        event_type = event[2]
+        # Standard pattern: return tuple with primary and secondary sort keys
+        # Use -1 for dropoff so it comes before 1 for pickup
+        return (time, -1 if event_type == 'dropoff' else 1)
+        
+    sorted_timeline = sorted(timeline, key=sort_key)
 
-    current_capacity= 0
-    for action in sorted_rides:
-        if action[1]=="pickup":
-            current_capacity+=action[2]
-        elif action[1]=="dropoff":
-            current_capacity-=action[2]
+    for event in sorted_timeline: 
 
+        if event[2]=='dropoff':
+
+            current_capacity-=event[1]
+        elif event[2]=='pickup':
+            current_capacity+=event[1]
+        
         if current_capacity>max_capacity:
             return False
         
     return True
+    
+
+
+                             
+                        
+
+
+
 
 # Test cases
 def test_can_vehicle_complete_rides_with_capacity():
@@ -201,5 +218,5 @@ def test_can_vehicle_complete_rides_with_capacity_dict():
     print("All dict-based test cases passed!")
 
 if __name__ == "__main__":
-    #test_can_vehicle_complete_rides_with_capacity()
-    test_can_vehicle_complete_rides_with_capacity_dict() 
+    test_can_vehicle_complete_rides_with_capacity()
+    #test_can_vehicle_complete_rides_with_capacity_dict() 

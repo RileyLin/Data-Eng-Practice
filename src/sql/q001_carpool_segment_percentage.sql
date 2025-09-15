@@ -60,3 +60,58 @@ JOIN
 JOIN
     dim_ride_type drt ON fr.ride_type_key = drt.ride_type_key;
 
+/*
+Query Variation: Find users who only use the app to go to airports
+
+This query identifies riders who exclusively use the rideshare service for airport trips.
+Assumes dim_location has location_name or location_type fields to identify airports.
+
+Expected Output:
+- user_id: The user identifier
+- user_name: The user's name  
+- total_airport_rides: Number of rides to airport
+- total_rides: Total number of rides (should equal airport rides for these users)
+
+Business Use Case:
+- Identify airport-focused user segment for targeted marketing
+- Understand travel patterns for airport shuttle services
+- Optimize driver allocation for airport routes
+*/
+
+-- Query to find users who only take rides to airports
+WITH user_ride_analysis AS (
+    SELECT 
+        u.user_id,
+        u.user_name,
+        COUNT(*) as total_rides,
+        COUNT(CASE 
+            WHEN dl_dropoff.location_name LIKE '%Airport%' 
+                OR dl_dropoff.location_name LIKE '%airport%'
+                OR dl_dropoff.location_type = 'Airport'
+            THEN 1 
+            ELSE NULL 
+        END) as airport_rides
+    FROM 
+        dim_users u
+    JOIN 
+        fact_ride_segments frs ON u.user_key = frs.rider_user_key
+    JOIN 
+        dim_location dl_dropoff ON frs.segment_dropoff_location_key = dl_dropoff.location_key
+    WHERE 
+        u.user_type = 'rider'
+    GROUP BY 
+        u.user_key, u.user_id, u.user_name
+)
+SELECT 
+    user_id,
+    user_name,
+    airport_rides as total_airport_rides,
+    total_rides
+FROM 
+    user_ride_analysis
+WHERE 
+    airport_rides = total_rides  -- Only users where ALL rides go to airport
+    AND total_rides > 0          -- Exclude users with no rides
+ORDER BY 
+    total_rides DESC;
+

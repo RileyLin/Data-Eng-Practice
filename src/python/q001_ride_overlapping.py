@@ -64,21 +64,25 @@ def can_user_complete_rides(requested_rides):
     Returns:
         True if no rides overlap, False otherwise.
     """
+
     if not requested_rides:
-        return True 
+        return True
     
-    sorted_rides = sorted(requested_rides, key = lambda x:x[0])
+    sorted_rides = sorted(requested_rides,key= lambda x:x[0])
 
     previous_end_time = 0
-
     for ride in sorted_rides:
+        
+        if ride[0]>=previous_end_time:
+            previous_end_time = ride[1]
 
-        if ride[0]<previous_end_time: 
+            continue
+        else:
             return False
         
-        previous_end_time = ride[1]
-
     return True
+
+
 
 
 def can_user_complete_rides_with_conflicts(requested_rides):
@@ -87,29 +91,38 @@ def can_user_complete_rides_with_conflicts(requested_rides):
     Each dict: {'id': int, 'start': int, 'end': int, 'type': str}
     Returns (True/False, list_of_conflicting_ride_ids)
     """
-    if not requested_rides:
-        return (True, [])
+
+    if not requested_rides: 
+        return 
     
     conflict_ids = set()
-    sorted_rides = sorted(requested_rides, key=lambda x: x['start'])
-    
-    previous_end_time = 0
-    previous_ride = None
-    
+
+    previous_ride_id = None
+    previous_time = 0
+
+    sorted_rides = sorted(requested_rides, key = lambda x:(x['start']) )
+
     for ride in sorted_rides:
-        if ride['start'] < previous_end_time:
-            # Current ride conflicts with previous ride
+
+        start_time = ride.get('start')
+
+        if start_time<previous_time: 
+            
+            if previous_ride_id is not None:
+                conflict_ids.add(previous_ride_id)
             conflict_ids.add(ride['id'])
-            if previous_ride:
-                conflict_ids.add(previous_ride['id'])
-        
-        # Update previous_end_time to the maximum end time seen so far
-        if ride['end'] > previous_end_time:
-            previous_end_time = ride['end']
-            previous_ride = ride
-    
-    # Return (can_complete, conflicting_ids)
-    return (len(conflict_ids) == 0, sorted(list(conflict_ids)))
+            #return (False,sorted(conflict_ids,key = lambda x:x))
+            previous_ride_id = ride['id']
+            previous_time = max(ride['end'],previous_time)
+
+        else: 
+
+            previous_ride_id = ride['id']
+            previous_time = max(ride['end'],previous_time)
+    print((len(conflict_ids)==0,sorted(list(conflict_ids))))
+    return (len(conflict_ids)==0,sorted(list(conflict_ids)))
+
+
 
 def get_ride_schedule_summary(requested_rides):
     """
@@ -229,5 +242,5 @@ def test_get_ride_schedule_summary():
 
 if __name__ == "__main__":
     test_can_user_complete_rides()
-    test_can_user_complete_rides_with_conflicts()
-    test_get_ride_schedule_summary() 
+    #test_can_user_complete_rides_with_conflicts()
+    #test_get_ride_schedule_summary() 
