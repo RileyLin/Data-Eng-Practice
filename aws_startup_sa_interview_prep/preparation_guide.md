@@ -192,6 +192,18 @@ Your main task is to select the best story from your arsenal for the question as
     *   **Why it works:** This is about a high-pressure situation with a hard deadline ("payroll runs in 48h"). While the root cause was a mistake, your *actions* demonstrate how you perform under pressure, take ownership, and resolve a critical issue before it caused a major problem. This is a powerful story about delivering results even when things go wrong.
 *   **Backup Story:** You could adapt the **Salesforce Data Migration** story. A project of that complexity likely had moments where the timeline was at risk. You could talk about a specific instance where a dependency was late or an unexpected technical issue arose. Then, describe how you re-prioritized tasks, communicated with stakeholders, and managed the situation to keep the project on track.
 
+**4. "Tell me about a time you had a disagreement or conflict"**
+
+This question is designed to see how you navigate professional disagreements. The key is to show that you focus on a shared goal and use data and persuasion, not emotion. Your **Census Pipeline** story is ideal for this.
+
+*   **Primary Story:** **Census Pipeline (Influence w/o Authority).**
+    *   **Why it works:** This story is a masterclass in handling resource conflict. The "conflict" wasn't a fight; it was a disagreement on priorities—Engineering had zero bandwidth for a project that you knew was critical for multiple internal customers (Sales, Finance, etc.). You didn't just escalate; you took ownership of resolving the conflict yourself.
+    *   **How to frame the narrative:**
+        1.  **Situation & Conflict:** "My internal customers in Sales and Finance were blocked because our risk models were stale, but the Engineering team had no bandwidth to build the census data pipeline they needed. The conflict was a classic one: a real business need vs. limited engineering resources."
+        2.  **Action & Influence (This is how you resolved it):** "Instead of just adding it to a backlog, I decided to de-risk the project and prove its value. I used my own time to build a working POC. Crucially, I also built a one-slide ROI deck quantifying the business impact, showing an estimated \$800k lift. This combination of a working demo and a clear business case is how I approach influencing without authority."
+        3.  **Result & Resolution:** "By presenting both the technical solution and the business value, I was able to turn the conversation from 'we don't have time' to 'this is a priority.' The Engineering manager agreed to allocate a sprint. The conflict was resolved because we were all able to align around the data that proved the value of the project. We ultimately delivered the solution, which added over \$1M in premium."
+    *   **LPs to highlight:** This story strongly demonstrates **Ownership**, **Bias for Action**, **Dive Deep** (to build the POC and ROI), and **Earn Trust** by solving a problem for your customers and for the engineering team.
+
 ### Delivery Tips
 
 *   **Stick to the STAR Method:** You are already doing this perfectly in your prep document. Keep it concise.
