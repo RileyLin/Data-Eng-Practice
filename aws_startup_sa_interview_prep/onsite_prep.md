@@ -150,3 +150,60 @@ AWS Startups showcase with customer success stories from this team: [https://aws
 ---
 
 Chat with meeting transcript: [https://notes.granola.ai/d/7ab5ba8a-b3ed-494c-97d1-4b5caf0485a4](https://notes.granola.ai/d/7ab5ba8a-b3ed-494c-97d1-4b5caf0485a4)
+
+
+
+Date
+Time
+Interviewer
+Title
+October 1, 2025
+8:00 AM - 9:00 AM (Pacific Time)
+Leonardo Kanagusku - Technical Communications Assessment
+Solutions Architect Manager
+startup org
+October 1, 2025
+9:00 AM - 10:00 AM (Pacific Time)
+Vidhyalakshmi Venkitakrishnan
+Sr. Software Development Engineer
+
+redsheft - sagemaker 
+October 1, 2025
+10:00 AM - 11:00 AM (Pacific Time)
+Sruthi Sonnenberg
+Account Manager
+
+duke university - 
+BREAK
+October 1, 2025
+12:00 PM - 1:00 PM (Pacific Time)
+Trey Everson
+Solutions Architect
+
+Cisco
+
+Volker Mueller (Shadow)
+Sr. Solutions Architect
+October 1, 2025
+1:00 PM - 2:00 PM (Pacific Time)
+Li Dai
+Solutions Architect
+
+Amazon Web Services (AWS) logo
+Startup Solutions Architect
+Startup Solutions Architect
+Amazon Web Services (AWS) · Full-timeAmazon Web Services (AWS) · Full-time
+Dec 2024 - Present · 10 mosDec 2024 to Present · 10 mos
+New York, United StatesNew York, United States
+Nurturing start ups success with AWS.Nurturing start ups success with AWS.
+Amazon Web Services (AWS) and Solution Architecture
+Codeless Universe logo
+Founder
+Founder
+Codeless Universe · Self-employedCodeless Universe · Self-employed
+Jul 2023 - Present · 2 yrs 3 mosJul 2023 to Present · 2 yrs 3 mos
+RemoteRemote
+I founded the company to accelerate the adoption of AI, VR/AR, and no/low code tools to the public.
+Became a two track verified Stripe partner within 3 months
+Grew the team to 5 people in under 8 months
+Generated 160k contract size revenue within 10 months
