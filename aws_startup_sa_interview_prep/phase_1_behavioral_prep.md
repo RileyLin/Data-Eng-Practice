@@ -91,6 +91,15 @@ This section contains your key career stories, formatted using the STAR method. 
 
 ---
 
+### Story 10: Unlocking Market Insights with External Data Integration
+- **Situation**: Our sales and product teams were operating with a significant blind spot. We had no reliable data on our competitors, and our internal account data was fragmented, making it nearly impossible to identify the right contacts at large companies or to get a single view of our strategic broker relationships. This was directly impacting our ability to price competitively and manage key partnerships.
+- **Task**: I took ownership of solving this strategic data gap. My goal was to architect a solution that would enrich our internal data with external market intelligence, create a single source of truth for account and broker data, and drive its adoption across the entire company.
+- **Action**: I led this initiative from discovery to delivery. First, I partnered with senior sales leaders to define the key business requirements. After researching and vetting several external data vendors, I selected two that best fit our needs. As the main architect, I translated the business needs into a technical integration plan, designed and built the data pipelines to merge the vendor data with our internal Snowflake warehouse, and worked with the vendors to run a successful POC. A critical part of the project was evangelism; I ran technical workshops to show our engineers how to leverage the new competitor data, and I ran separate business workshops to train our sales, product, and marketing teams on how to use the enriched data in their dashboards and strategic planning.
+- **Result**: The project became a core data asset for the company. We achieved over **80% adoption** of the new data source within six months. The sales team reported a **90% reduction in time** spent on researching accounts and competitors. This time savings contributed to a **5% increase in our competitive win rate** in the first year. The unified broker view also allowed us to strengthen key partnerships, unlocking an estimated **$2M in new pipeline opportunities**.
+- **Leadership Principles**: Ownership, Think Big, Customer Obsession, Deliver Results, Dive Deep.
+
+---
+
 ## 2. Leadership Principle (LP) to Story Matrix
 
 Use this matrix to quickly select the best story for a given LP and to have a backup ready if you've already used your primary one.
@@ -104,13 +113,13 @@ Use this matrix to quickly select the best story for a given LP and to have a ba
 | **Learn and Be Curious**| Claims Gen-AI Solution | Power BI Version Control |
 | **Hire and Develop** | Salesforce Migration | SalesMart Dashboard |
 | **Insist on Highest Standards**| Power BI Version Control | Commission RCA |
-| **Think Big** | Sales & Underwriting AI Tool| Census Pipeline |
+| **Think Big** | Sales & Underwriting AI Tool| Unlocking Market Insights |
 | **Bias for Action** | Census Pipeline | Claims Gen-AI Solution |
 | **Frugality** | Power BI Latency Fix | (Could be improved) |
 | **Earn Trust** | Commission RCA (Failure) | The Misaligned Metrics (Failure)|
 | **Dive Deep** | Commission RCA (Failure) | Data Quality Framework |
 | **Have Backbone** | Census Pipeline | (Could be improved) |
-| **Deliver Results** | SalesMart Dashboard | Claims Gen-AI Solution |
+| **Deliver Results** | SalesMart Dashboard | Unlocking Market Insights |
 | **Strive to be Earth's Best Employer**| (Mentoring/Team Story) | (Could be improved) |
 | **Success and Scale...**| (Security/Compliance Story) | (Could be improved) |
 
@@ -153,7 +162,7 @@ Use these questions to practice delivering your stories. For each question, a su
 #### Think Big
 *   **Question:** "Describe a solution you built that was not just a one-off fix, but a scalable pattern that could be used by the rest of the company."
     *   **Primary:** `Sales & Underwriting AI Tool` (Framed the tool not just for one team but as a pattern for AI-powered apps)
-    *   **Backup:** `Data Quality Framework` (Designed as a reusable framework for any report)
+    *   **Backup:** `Unlocking Market Insights` (Created a core data asset for the whole company)
 
 #### Bias for Action
 *   **Question:** "Tell me about a time you favored swift, calculated action over waiting for perfect information or consensus."
@@ -181,7 +190,7 @@ Use these questions to practice delivering your stories. For each question, a su
 #### Deliver Results
 *   **Question:** "Tell me about your proudest professional achievement." or "Describe the project where you had the most significant, quantifiable impact."
     *   **Primary:** `SalesMart Dashboard` ($1.5M lift, top-3 dashboard)
-    *   **Backup:** `Claims Gen-AI Solution` (90% time reduction, 5% accuracy increase, $150k savings)
+    *   **Backup:** `Unlocking Market Insights` ($2M pipeline, 5% win rate increase)
 
 ---
 
@@ -204,3 +213,45 @@ For every story you tell, ensure you include at least one of these, in order of 
 -   [ ] **Customer Impact (Strongest):** A clear, quantitative metric showing how it helped the customer (e.g., saved 4 hours per case, reduced data complaints by 50%, increased accuracy by 5%).
 -   [ ] **Business Impact:** How it benefited the company beyond the immediate customer (e.g., unlocked $1M in premium, created a new development standard, influenced engineering roadmap).
 -   [ ] **Lessons Learned (Required for failure stories):** Clearly articulate what you learned and how you have applied that lesson since.
+
+---
+
+## 5. Universal Story Framework: How to Frame Any Story
+
+Use this chart to adapt any of your stories to a specific Leadership Principle by emphasizing the right details.
+
+| Leadership Principle | What to Focus On in Your Story |
+| :--- | :--- |
+| **Customer Obsession** | How you worked backwards from a specific customer's pain point or request. |
+| **Ownership** | The moment you took initiative on a problem that wasn't your direct responsibility. |
+| **Invent and Simplify** | The novelty of your solution and how it made a complex process fundamentally easier. |
+| **Are Right, A Lot** | A difficult judgment call you made with incomplete data by seeking diverse perspectives. |
+| **Learn and Be Curious**| A time you had to quickly learn a new technology, domain, or skill to succeed. |
+| **Hire and Develop the Best** | How you mentored a teammate, raised the performance bar, or made a great hiring decision. |
+| **Insist on the Highest Standards**| A time you prevented a defect, established a new quality bar, or refused to accept "good enough." |
+| **Think Big** | How your solution was not just a one-off fix, but a scalable pattern for the entire company. |
+| **Bias for Action** | A time you took a calculated risk to make progress instead of waiting for perfect consensus. |
+| **Frugality** | How you achieved significant results by optimizing existing resources instead of asking for more. |
+| **Earn Trust** | A time you made a mistake, owned it transparently, and described the specific steps you took to fix it. |
+| **Dive Deep** | The specific data, metrics, or logs you personally used to diagnose a root cause. |
+| **Have Backbone; Disagree & Commit** | How you respectfully challenged a decision with data, and then fully supported the final outcome. |
+| **Deliver Results** | The most significant, quantifiable business or customer metric that you personally moved. |
+| **Strive to be Earth's Best Employer** | How you helped create a safer, more productive, or more inclusive team environment. |
+| **Success and Scale Bring Broad Responsibility** | The long-term, secondary consequences of your work (e.g., security, privacy) and how you anticipated them. |
+
+---
+
+## 6. Quick-Reference Story Bank
+
+Use this list during your interview as a quick reminder of the stories you have prepared.
+
+*   **AI Sales Tool:** (Invent & Simplify, Customer Obsession, Deliver Results) - *GenAI, Streamlit, ECS, Bedrock, Snowflake, 90% time reduction.*
+*   **AI Claims Tool:** (Bias for Action, Invent & Simplify) - *POC in evenings, 90% time reduction, 95% accuracy.*
+*   **Power BI Version Control:** (Insist on Highest Standards, Earn Trust) - *Git for BI, JSON conversion, 50% fewer complaints.*
+*   **Census Data Pipeline:** (Ownership, Have Backbone) - *Unowned process, built POC, $800k ROI deck to influence eng.*
+*   **SalesMart Dashboard:** (Are Right, A Lot, Deliver Results) - *Metric alignment workshops, $1.5M lift, top-3 dashboard.*
+*   **Commission RCA (Failure):** (Earn Trust, Ownership, Dive Deep) - *$15k overpayment bug, took ownership, built 3 new guardrails.*
+*   **Data Quality Framework:** (Dive Deep, Deliver Results) - *Proactive monitoring, 70% error reduction, no more exec surprises.*
+*   **Power BI Latency Fix:** (Frugality, Dive Deep) - *120s to 9s load time, no new hardware, 20% usage increase.*
+*   **Misaligned Metrics (Failure):** (Earn Trust, Are Right A Lot) - *Paused development, owned mistake, ran metric workshops, became new standard.*
+*   **Market Insights Integration:** (Think Big, Ownership) - *Solved strategic data gap, 80% adoption, 5% win rate increase, $2M pipeline.*
