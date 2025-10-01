@@ -151,59 +151,65 @@ AWS Startups showcase with customer success stories from this team: [https://aws
 
 Chat with meeting transcript: [https://notes.granola.ai/d/7ab5ba8a-b3ed-494c-97d1-4b5caf0485a4](https://notes.granola.ai/d/7ab5ba8a-b3ed-494c-97d1-4b5caf0485a4)
 
+---
 
+## Interview Schedule & Interviewer Backgrounds
 
-Date
-Time
-Interviewer
-Title
-October 1, 2025
-8:00 AM - 9:00 AM (Pacific Time)
-Leonardo Kanagusku - Technical Communications Assessment
-Solutions Architect Manager
-startup org
-October 1, 2025
-9:00 AM - 10:00 AM (Pacific Time)
-Vidhyalakshmi Venkitakrishnan
-Sr. Software Development Engineer
+### **Session 1: 8:00 AM - 9:00 AM PT**
+*   **Interviewer:** Leonardo Kanagusku
+*   **Role:** Solutions Architect Manager
+*   **Focus:** Technical Communications Assessment
+*   **Notes:** This is your hiring manager session and presentation.
+*   **Experience Summary:** Nearly 6 years at AWS, rising from Cloud Application Architect to managing the Startup SA team. Previously a hands-on Software Architect and Senior Developer with a deep background in .NET and leading dev teams.
+*   **Questions:**
+    1.  "I'm curious about the 'guardrails vs. innovation' balance on your team. How do you empower SAs to build cutting-edge GenAI demos for startups, which might be experimental, while still ensuring the final recommendations are secure, scalable, and well-architected?"
+    2.  "For an SA who's passionate about a specific area like AI, what does the path from 'having an interest' to 'becoming a go-to expert' look like at AWS? How does a manager like you actively support that journey?"
+    3.  "When you think about the SAs on your team who have the biggest impact, what's the common thread? Is it their raw technical depth, their business acumen with founders, their ability to publish content, or something else?"
+    4.  **(Personalized):** "I see you also came from a hands-on software architect background before moving into leadership at AWS. How does that experience as a builder inform how you manage a team of SAs, and what qualities do you find are most important for someone making a similar transition into this field?"
 
-redsheft - sagemaker 
-October 1, 2025
-10:00 AM - 11:00 AM (Pacific Time)
-Sruthi Sonnenberg
-Account Manager
+### **Session 2: 9:00 AM - 10:00 AM PT**
+*   **Interviewer:** Vidhyalakshmi Venkitakrishnan
+*   **Role:** Sr. Software Development Engineer
+*   **Notes:** Experience with Redshift and SageMaker.
 
-duke university - 
-BREAK
-October 1, 2025
-12:00 PM - 1:00 PM (Pacific Time)
-Trey Everson
-Solutions Architect
+### **Session 3: 10:00 AM - 11:00 AM PT**
+*   **Interviewer:** Sruthi Sonnenberg
+*   **Role:** Account Manager
+*   **Notes:** Duke University alum.
+*   **Experience Summary:** Over 3.5 years as an AM at AWS. Previously spent over 3 years at Cisco in various sales roles, starting in their Sales Associates Program.
+*   **Questions:**
+    1.  "Could you walk me through your most successful partnership with an SA? What was the customer's situation, how did you two divide and conquer the responsibilities, and what made that relationship so effective?"
+    2.  "I've often seen the tension between a startup's ambitious tech roadmap and their burn rate. When you and an SA are with a founder who wants a complex AI architecture but has a tight budget, how does that conversation typically go? How do you team up to guide them to a practical starting point?"
+    3.  "When you're first meeting with a highly technical founder, at what point do you bring in your SA? How do you use their technical credibility as a tool to build trust and open up the conversation?"
+    4.  **(Personalized):** "I see you transitioned to the AWS startup team after a successful career at Cisco. What was the most significant difference you noticed in the customer mindset or the sales cycle when moving from a large enterprise environment to working with fast-moving startups?"
 
-Cisco
+---
+**11:00 AM - 12:00 PM PT: BREAK**
+---
 
-Volker Mueller (Shadow)
-Sr. Solutions Architect
-October 1, 2025
-1:00 PM - 2:00 PM (Pacific Time)
-Li Dai
-Solutions Architect
+### **Session 4: 12:00 PM - 1:00 PM PT**
+*   **Interviewer:** Trey Everson
+*   **Role:** Solutions Architect
+*   **Notes:** Previously at Cisco.
+*   **Experience Summary:** At AWS for over a year. Previously a Solutions Engineer at Cisco with deep networking and security experience. Won a hackathon for building a custom security solution using REST APIs. Also has hands-on internship experience building CI/CD pipelines with Kubernetes and Docker.
+*   **Shadow:** Volker Mueller (Sr. Solutions Architect)
+*   **Questions:**
+    1.  "Looking back, what's one piece of advice you'd give yourself for your first three months in this role? What's the biggest misconception people might have about the Startup SA job?"
+    2.  "The prep material mentions handling 5-10 customers. I'm used to diving deep on one or two big projects at a time. What are your practical strategies for managing the mental context-switching required to be effective across so many different startups?"
+    3.  "The tech landscape for startups changes incredibly fast. How do you personally budget your time for learning—for getting hands-on with a new service—versus direct customer-facing work?"
+    4.  **(Personalized):** "I saw you have a strong hands-on background, including winning a hackathon and building K8s pipelines. Now that you've been an SA for a year, how have you found the balance between staying hands-on and building versus operating at a higher level of architectural guidance for your startup customers?"
 
-Amazon Web Services (AWS) logo
-Startup Solutions Architect
-Startup Solutions Architect
-Amazon Web Services (AWS) · Full-timeAmazon Web Services (AWS) · Full-time
-Dec 2024 - Present · 10 mosDec 2024 to Present · 10 mos
-New York, United StatesNew York, United States
-Nurturing start ups success with AWS.Nurturing start ups success with AWS.
-Amazon Web Services (AWS) and Solution Architecture
-Codeless Universe logo
-Founder
-Founder
-Codeless Universe · Self-employedCodeless Universe · Self-employed
-Jul 2023 - Present · 2 yrs 3 mosJul 2023 to Present · 2 yrs 3 mos
-RemoteRemote
-I founded the company to accelerate the adoption of AI, VR/AR, and no/low code tools to the public.
-Became a two track verified Stripe partner within 3 months
-Grew the team to 5 people in under 8 months
-Generated 160k contract size revenue within 10 months
+### **Session 5: 1:00 PM - 2:00 PM PT**
+*   **Interviewer:** Li Dai
+*   **Role:** Solutions Architect
+*   **Experience:**
+    *   **Startup Solutions Architect @ AWS** (Dec 2024 - Present)
+        *   Focuses on nurturing startup success with AWS in New York.
+    *   **Founder @ Codeless Universe** (Jul 2023 - Present)
+        *   Founded a company to accelerate adoption of AI, VR/AR, and no/low-code tools.
+        *   Grew the team to 5 people and generated significant early revenue.
+*   **Questions:**
+    1.  "As someone who's been on the other side of the table building a company, how has that changed your approach as an SA? Do you find yourself having conversations with founders that go beyond just the technology, and how does that help build trust?"
+    2.  "I really enjoy the 'zero to one' phase of building. How much of that 'founder mentality'—being scrappy, building quick POCs, acting with a sense of urgency—have you been able to bring into your day-to-day as a Startup SA at a company as large as AWS?"
+    3.  "From one founder to another, what's the biggest architectural mistake you see startups make in their early days that ends up costing them dearly in the long run? How do you help them avoid that pitfall?"
+    4.  **(Personalized):** I noticed this role is in New York. "Given your experience as a founder and now an SA in the New York tech scene, what are the most exciting or unique architectural trends you're seeing emerge from the startups here specifically?"
